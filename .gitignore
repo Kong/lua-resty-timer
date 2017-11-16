@@ -1,0 +1,10 @@
+*.swp
+*.swo
+*~
+go
+t/servroot/
+nginx
+ctags
+tags
+a.lua
+.DS_Store

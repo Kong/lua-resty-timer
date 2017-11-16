@@ -1,0 +1,177 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<head>
+    <title>Extended timer for OpenResty</title>
+    <link rel="stylesheet" href="ldoc.css" type="text/css" />
+</head>
+<body>
+
+<div id="container">
+
+<div id="product">
+	<div id="product_logo"></div>
+	<div id="product_name"><big><b></b></big></div>
+	<div id="product_description"></div>
+</div> <!-- id="product" -->
+
+
+<div id="main">
+
+
+<!-- Menu -->
+
+<div id="navigation">
+<br/>
+<h1>lua-resty-timer</h1>
+
+
+<h2>Contents</h2>
+<ul>
+<li><a href="#Functions">Functions</a></li>
+</ul>
+
+
+<h2>Modules</h2>
+<ul class="nowrap">
+  <li><strong>resty.timer</strong></li>
+</ul>
+<h2>Topics</h2>
+<ul class="">
+  <li><a href="topics/readme.md.html">readme</a></li>
+</ul>
+
+</div>
+
+<div id="content">
+
+<h1>Module <code>resty.timer</code></h1>
+<p>Extended timer.</p>
+<p>
+
+</p>
+    <h3>Info:</h3>
+    <ul>
+        <li><strong>Copyright</strong>: 2017 Kong Inc.</li>
+        <li><strong>License</strong>: Apache 2.0</li>
+        <li><strong>Author</strong>: Thijs Schreijer</li>
+    </ul>
+
+
+<h2><a href="#Functions">Functions</a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#cancel">cancel ()</a></td>
+	<td class="summary">Cancel the timer.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#new">new (opts, ...)</a></td>
+	<td class="summary">Create a new timer.</td>
+	</tr>
+</table>
+
+<br/>
+<br/>
+
+
+    <h2 class="section-header "><a name="Functions"></a>Functions</h2>
+
+    <dl class="function">
+    <dt>
+    <a name = "cancel"></a>
+    <strong>cancel ()</strong>
+    </dt>
+    <dd>
+    Cancel the timer.
+ Will run the 'cancel'-callback if provided. Will only cancel the timer
+ in the current worker.
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+        results of the 'cancel' callback, or <code>true</code> if no callback was provided
+ or <code>nil + &quot;already cancelled&quot;</code> if called repeatedly
+    </ol>
+
+
+
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example"><span class="keyword">local</span> t, err = timer(options)  <span class="comment">-- create a timer
+</span><span class="keyword">if</span> t <span class="keyword">then</span>
+  t:cancel()  <span class="comment">-- immediately cancel the timer again
+</span><span class="keyword">end</span></pre>
+    </ul>
+
+</dd>
+    <dt>
+    <a name = "new"></a>
+    <strong>new (opts, ...)</strong>
+    </dt>
+    <dd>
+
+<p>Create a new timer.
+ The <code>opts</code> table supports the following parameters:</p>
+
+<ul>
+    <li><p><code>interval</code> : (number) interval in milliseconds after which the timer expires</p></li>
+    <li><p><code>recurring</code> : (boolean) set to <code>true</code> to make it a recurring timer</p></li>
+    <li><p><code>immediate</code> : (boolean) will do the first run immediately (the initial
+    interval will be set to 0 seconds). This option requires the <code>recurring</code> option.</p></li>
+    <li><p><code>detached</code> : (boolean) if set to <code>true</code> the timer will keep running detached, if
+    set to <code>false</code> the timer will be garbage collected unless anchored
+    by the user.</p></li>
+    <li><p><code>expire</code> : (function) callback called as <code>function(...)</code> with the arguments passed
+    as extra beyond the <code>opts</code> table to this <a href="index.html#new">new</a> function.</p></li>
+    <li><p><a href="index.html#cancel">cancel</a> : (optional, function) callback called as <code>function(premature, ...)</code>. Where
+    <code>premature</code> is the flag indicating that the timer is cancelled by the
+    system, see <code>ngx.timer.at</code> documentation. The additional arguments will be the
+    arguments as passed to this <a href="index.html#new">new</a> function, beyond the <code>opts</code> table.</br>
+    <em>NOTE</em>: will be called when cancelled by the user or the system, but <em>not</em> when
+    garbage collected.</p></li>
+    <li><p><code>shm_name</code> : (optional, string) name of the shm to use to synchronize with the
+    other workers if <code>key_name</code> is set.</p></li>
+    <li><p><code>key_name</code> : (optional, string) key name to use in shm <code>shm_name</code>. If this key is given
+    the timer will only be executed in a single worker. All timers (across all workers) with the same
+    key will share this. The key will always be prefixed with this module's
+    name to prevent name collissions in the shm.</p></li>
+</ul>
+
+
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">opts</span>
+         table with options
+        </li>
+        <li><span class="parameter">...</span>
+         arguments to pass to the callbacks <code>expire</code> and <a href="index.html#cancel">cancel</a>.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        <a href="index.html">timer</a> object or <code>nil + err</code>
+    </ol>
+
+
+
+
+</dd>
+</dl>
+
+
+</div> <!-- id="content" -->
+</div> <!-- id="main" -->
+<div id="about">
+<i>generated by <a href="http://github.com/stevedonovan/LDoc">LDoc 1.4.6</a></i>
+<i style="float:right;">Last updated 2017-11-16 16:07:00 </i>
+</div> <!-- id="about" -->
+</div> <!-- id="container" -->
+</body>
+</html>

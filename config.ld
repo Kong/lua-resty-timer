@@ -1,0 +1,11 @@
+project='lua-resty-timer'
+title='Extended timer for OpenResty'
+description='Provides recurring, node-wide, garbage collectible timers'
+format='discount'
+file='./lib/'
+dir='docs'
+readme='readme.md'
+sort=true
+sort_modules=true
+all=false
+style='./docs/'

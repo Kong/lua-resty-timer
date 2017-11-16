@@ -1,0 +1,151 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<head>
+    <title>Extended timer for OpenResty</title>
+    <link rel="stylesheet" href="../ldoc.css" type="text/css" />
+</head>
+<body>
+
+<div id="container">
+
+<div id="product">
+	<div id="product_logo"></div>
+	<div id="product_name"><big><b></b></big></div>
+	<div id="product_description"></div>
+</div> <!-- id="product" -->
+
+
+<div id="main">
+
+
+<!-- Menu -->
+
+<div id="navigation">
+<br/>
+<h1>lua-resty-timer</h1>
+
+
+
+
+<h2>Topics</h2>
+<ul class="">
+  <li><strong>readme</strong></li>
+</ul>
+<h2>Modules</h2>
+<ul class="nowrap">
+  <li><a href="../index.html">resty.timer</a></li>
+</ul>
+
+</div>
+
+<div id="content">
+
+
+<h1>lua-resty-timer</h1>
+
+<p><a href="https://travis-ci.com/kong/lua-resty-timer/branches"><img src="https://travis-ci.com/kong/lua-resty-timer.svg?token=cpcsrmGmJZdztxDeoJqq&amp;branch=master" alt="Build Status"/></a></p>
+
+<p>Extended timers for OpenResty</p>
+
+<h1>Status</h1>
+
+<p>This library is still under early development.</p>
+
+<h1>Synopsis</h1>
+
+
+<pre>
+http {
+    lua_shared_dict timer_shm <span class="number">1</span>m;
+    init_worker_by_lua_block {
+        <span class="keyword">local</span> timer = <span class="global">require</span>(<span class="string">"resty.timer"</span>)
+
+        <span class="keyword">local</span> object = {                      <span class="comment">-- create some object with a timer
+</span>            count = <span class="number">0</span>,
+            handler = <span class="keyword">function</span>(self, param1)  <span class="comment">-- the timer callback as a method
+</span>                <span class="comment">-- do something here
+</span>                <span class="global">print</span>(param1)                 <span class="comment">--&gt; "Param 1"
+</span>            <span class="keyword">end</span>,
+            timer = <span class="keyword">nil</span>,                      <span class="comment">-- property to be set below
+</span>        }
+
+        <span class="keyword">local</span> options = {
+            interval = <span class="number">0.1</span>,           <span class="comment">-- expiry interval in seconds
+</span>            recurring = <span class="keyword">true</span>,         <span class="comment">-- recurring or single timer
+</span>            immediate = <span class="keyword">true</span>,         <span class="comment">-- initial interval will be 0
+</span>            detached = <span class="keyword">false</span>,         <span class="comment">-- run detached, or be garbagecollectible
+</span>            expire = object.handler,  <span class="comment">-- callback on timer expiry
+</span>            cancel = <span class="keyword">function</span>(premature, self, param1)
+                <span class="comment">-- will be called when the timer gets cancelled by the user
+</span>                <span class="comment">-- or the system (but not when GC'ed)
+</span>            <span class="keyword">end</span>,
+            shm_name = <span class="string">"timer_shm"</span>,   <span class="comment">-- shm to use for node-wide timers
+</span>            key_name = <span class="string">"my_key"</span>,      <span class="comment">-- key-name to use for node-wide timers
+</span>        }
+
+        <span class="comment">-- create and add to object, but also pass it as 'self' to the handler
+</span>        object.timer = timer(options, object, <span class="string">"Param 1"</span>)
+
+        <span class="comment">-- anchor the object and timer
+</span>        _M.global_object = object     <span class="comment">-- will be collected if not anchored
+</span>
+        <span class="comment">-- cancel the timer
+</span>        object.timer:cancel()
+    }
+}
+</pre>
+
+
+<h1>Description</h1>
+
+<p>The OpenResty timer is fairly limited, this timer adds a number of common
+options as parameters without having to recode (and retest) them in each
+project.</p>
+
+<ul>
+    <li><p>recurring timers (supported by OR as well through <code>ngx.timer.every</code>)</p></li>
+    <li><p>immediate first run for recurring timers</p></li>
+    <li><p>cancellable timers</p></li>
+    <li><p>cancel callback, called when the timer is cancelled (either by the user or
+    by the system)</p></li>
+    <li><p>garbage collectible timers, enabling timers to (optionally) be attached to
+    objects and automatically stop when garbage collected.</p></li>
+    <li><p>node-wide timers: the same timer started in each worker will still only
+    run once across the system. If the worker running it is removed the
+    timer will automatically be executed on another worker.</p></li>
+</ul>
+
+<p>See the <a href="http://kong.github.io/lua-resty-timer">online LDoc documentation</a>
+for the complete API.</p>
+
+<h1>Copyright and License</h1>
+
+<pre><code> Copyright 2017 Kong Inc.
+
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+</code></pre>
+
+
+
+
+</div> <!-- id="content" -->
+</div> <!-- id="main" -->
+<div id="about">
+<i>generated by <a href="http://github.com/stevedonovan/LDoc">LDoc 1.4.6</a></i>
+<i style="float:right;">Last updated 2017-11-16 16:07:00 </i>
+</div> <!-- id="about" -->
+</div> <!-- id="container" -->
+</body>
+</html>

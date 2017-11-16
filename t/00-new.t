@@ -1,0 +1,416 @@
+use Test::Nginx::Socket::Lua;
+use Cwd qw(cwd);
+
+workers(1);
+
+plan tests => repeat_each() * (blocks() * 3) - 3;
+
+my $pwd = cwd();
+
+our $HttpConfig = qq{
+    lua_package_path "$pwd/lib/?.lua;;";
+    lua_shared_dict test_shm 8m;
+    lua_shared_dict timer_shm 8m;
+};
+
+run_tests();
+
+__DATA__
+
+=== TEST 1: new() works with valid input
+--- http_config eval: $::HttpConfig
+--- config
+    location = /t {
+        content_by_lua_block {
+            local timer = require("resty.timer")
+            local options = {
+                interval = 0.1,
+                recurring = true,
+                immediate = false,
+                detached = false,
+                expire = function(arg1, arg2, arg3)
+                    ngx.log(ngx.ERR, "EXPIRE ", arg1, arg2, arg3)
+                end,
+                cancel = function(premature, arg1, arg2, arg3)
+                    ngx.log(ngx.ERR, "CANCEL ", premature, arg1, arg2, arg3)
+                end,
+                shm_name = "timer_shm",
+                key_name = "my_key",
+            }
+            local ok, err = pcall(timer.new, options, "arg1", nil, "arg3")
+            if ok then
+                ngx.say(true)
+            else
+                ngx.log(ngx.ERR, err)
+            end
+        }
+    }
+--- request
+GET /t
+--- response_body
+true
+--- error_log
+
+
+
+=== TEST 2: new() requires interval as positive number
+--- http_config eval: $::HttpConfig
+--- config
+    location = /t {
+        content_by_lua_block {
+            local timer = require("resty.timer")
+            local options = {
+                interval = -1,
+                recurring = true,
+                immediate = false,
+                detached = false,
+                expire = function(arg1, arg2, arg3)
+                    ngx.log(ngx.ERR, "EXPIRE ", arg1, arg2, arg3)
+                end,
+                cancel = function(premature, arg1, arg2, arg3)
+                    ngx.log(ngx.ERR, "CANCEL ", premature, arg1, arg2, arg3)
+                end,
+                shm_name = "timer_shm",
+                key_name = "my_key",
+            }
+            local ok, err = pcall(timer.new, options, "arg1", nil, "arg3")
+            if ok then
+                ngx.say(true)
+            else
+                ngx.log(ngx.ERR, err)
+            end
+        }
+    }
+--- request
+GET /t
+--- response_body
+
+--- error_log
+expected 'interval' to be greater than or equal to 0
+
+
+
+=== TEST 3: new() requires interval as number
+--- http_config eval: $::HttpConfig
+--- config
+    location = /t {
+        content_by_lua_block {
+            local timer = require("resty.timer")
+            local options = {
+                interval = "xxx",
+                recurring = true,
+                immediate = false,
+                detached = false,
+                expire = function(arg1, arg2, arg3)
+                    ngx.log(ngx.ERR, "EXPIRE ", arg1, arg2, arg3)
+                end,
+                cancel = function(premature, arg1, arg2, arg3)
+                    ngx.log(ngx.ERR, "CANCEL ", premature, arg1, arg2, arg3)
+                end,
+                shm_name = "timer_shm",
+                key_name = "my_key",
+            }
+            local ok, err = pcall(timer.new, options, "arg1", nil, "arg3")
+            if ok then
+                ngx.say(true)
+            else
+                ngx.log(ngx.ERR, err)
+            end
+        }
+    }
+--- request
+GET /t
+--- response_body
+
+--- error_log
+expected 'interval' to be a number
+
+
+
+=== TEST 4: new() expire callback must be a function
+--- http_config eval: $::HttpConfig
+--- config
+    location = /t {
+        content_by_lua_block {
+            local timer = require("resty.timer")
+            local options = {
+                interval = 1,
+                recurring = true,
+                immediate = false,
+                detached = false,
+                expire = "string",
+                cancel = function(premature, arg1, arg2, arg3)
+                    ngx.log(ngx.ERR, "CANCEL ", premature, arg1, arg2, arg3)
+                end,
+                shm_name = "timer_shm",
+                key_name = "my_key",
+            }
+            local ok, err = pcall(timer.new, options, "arg1", nil, "arg3")
+            if ok then
+                ngx.say(true)
+            else
+                ngx.log(ngx.ERR, err)
+            end
+        }
+    }
+--- request
+GET /t
+--- response_body
+
+--- error_log
+expected 'expire' to be a function
+
+
+
+=== TEST 5: new() cancel is not required
+--- http_config eval: $::HttpConfig
+--- config
+    location = /t {
+        content_by_lua_block {
+            local timer = require("resty.timer")
+            local options = {
+                interval = 1,
+                recurring = true,
+                immediate = false,
+                detached = false,
+                expire = function(arg1, arg2, arg3)
+                    ngx.log(ngx.ERR, "EXPIRE ", arg1, arg2, arg3)
+                end,
+                --cancel = function(premature, arg1, arg2, arg3)
+                --    ngx.log(ngx.ERR, "CANCEL ", premature, arg1, arg2, arg3)
+                --end,
+                shm_name = "timer_shm",
+                key_name = "my_key",
+            }
+            local ok, err = pcall(timer.new, options, "arg1", nil, "arg3")
+            if ok then
+                ngx.say(true)
+            else
+                ngx.log(ngx.ERR, err)
+            end
+        }
+    }
+--- request
+GET /t
+--- response_body
+true
+--- error_log
+
+
+
+=== TEST 6: new() cancel must be a function
+--- http_config eval: $::HttpConfig
+--- config
+    location = /t {
+        content_by_lua_block {
+            local timer = require("resty.timer")
+            local options = {
+                interval = 1,
+                recurring = true,
+                immediate = false,
+                detached = false,
+                expire = function(arg1, arg2, arg3)
+                    ngx.log(ngx.ERR, "EXPIRE ", arg1, arg2, arg3)
+                end,
+                cancel = "string",
+                shm_name = "timer_shm",
+                key_name = "my_key",
+            }
+            local ok, err = pcall(timer.new, options, "arg1", nil, "arg3")
+            if ok then
+                ngx.say(true)
+            else
+                ngx.log(ngx.ERR, err)
+            end
+        }
+    }
+--- request
+GET /t
+--- response_body
+
+--- error_log
+expected 'cancel' to be a function
+
+
+
+=== TEST 7: new() key_name is not required
+--- http_config eval: $::HttpConfig
+--- config
+    location = /t {
+        content_by_lua_block {
+            local timer = require("resty.timer")
+            local options = {
+                interval = 1,
+                recurring = true,
+                immediate = false,
+                detached = false,
+                expire = function(arg1, arg2, arg3)
+                    ngx.log(ngx.ERR, "EXPIRE ", arg1, arg2, arg3)
+                end,
+                cancel = function(premature, arg1, arg2, arg3)
+                    ngx.log(ngx.ERR, "CANCEL ", premature, arg1, arg2, arg3)
+                end,
+                shm_name = "timer_shm",
+                --key_name = "my_key",
+            }
+            local ok, err = pcall(timer.new, options, "arg1", nil, "arg3")
+            if ok then
+                ngx.say(true)
+            else
+                ngx.log(ngx.ERR, err)
+            end
+        }
+    }
+--- request
+GET /t
+--- response_body
+true
+--- error_log
+
+
+
+=== TEST 8: new() key_name must be a string
+--- http_config eval: $::HttpConfig
+--- config
+    location = /t {
+        content_by_lua_block {
+            local timer = require("resty.timer")
+            local options = {
+                interval = 1,
+                recurring = true,
+                immediate = false,
+                detached = false,
+                expire = function(arg1, arg2, arg3)
+                    ngx.log(ngx.ERR, "EXPIRE ", arg1, arg2, arg3)
+                end,
+                cancel = function(premature, arg1, arg2, arg3)
+                    ngx.log(ngx.ERR, "CANCEL ", premature, arg1, arg2, arg3)
+                end,
+                shm_name = "timer_shm",
+                key_name = 0,
+            }
+            local ok, err = pcall(timer.new, options, "arg1", nil, "arg3")
+            if ok then
+                ngx.say(true)
+            else
+                ngx.log(ngx.ERR, err)
+            end
+        }
+    }
+--- request
+GET /t
+--- response_body
+
+--- error_log
+expected 'key_name' to be a string
+
+
+
+=== TEST 9: new() shm_name required when key_name is given
+--- http_config eval: $::HttpConfig
+--- config
+    location = /t {
+        content_by_lua_block {
+            local timer = require("resty.timer")
+            local options = {
+                interval = 1,
+                recurring = true,
+                immediate = false,
+                detached = false,
+                expire = function(arg1, arg2, arg3)
+                    ngx.log(ngx.ERR, "EXPIRE ", arg1, arg2, arg3)
+                end,
+                cancel = function(premature, arg1, arg2, arg3)
+                    ngx.log(ngx.ERR, "CANCEL ", premature, arg1, arg2, arg3)
+                end,
+                --shm_name = "timer_shm",
+                key_name = "my_key",
+            }
+            local ok, err = pcall(timer.new, options, "arg1", nil, "arg3")
+            if ok then
+                ngx.say(true)
+            else
+                ngx.log(ngx.ERR, err)
+            end
+        }
+    }
+--- request
+GET /t
+--- response_body
+
+--- error_log
+'shm_name' is required when specifying 'key_name'
+
+
+
+=== TEST 10: new() shm must exist
+--- http_config eval: $::HttpConfig
+--- config
+    location = /t {
+        content_by_lua_block {
+            local timer = require("resty.timer")
+            local options = {
+                interval = 1,
+                recurring = true,
+                immediate = false,
+                detached = false,
+                expire = function(arg1, arg2, arg3)
+                    ngx.log(ngx.ERR, "EXPIRE ", arg1, arg2, arg3)
+                end,
+                cancel = function(premature, arg1, arg2, arg3)
+                    ngx.log(ngx.ERR, "CANCEL ", premature, arg1, arg2, arg3)
+                end,
+                shm_name = "non-existing",
+                key_name = "my_key",
+            }
+            local ok, err = pcall(timer.new, options, "arg1", nil, "arg3")
+            if ok then
+                ngx.say(true)
+            else
+                ngx.log(ngx.ERR, err)
+            end
+        }
+    }
+--- request
+GET /t
+--- response_body
+
+--- error_log
+shm by name 'non-existing' not found
+
+
+
+=== TEST 11: new() cannot combine non-recurring and immediate
+--- http_config eval: $::HttpConfig
+--- config
+    location = /t {
+        content_by_lua_block {
+            local timer = require("resty.timer")
+            local options = {
+                interval = 1,
+                recurring = false,
+                immediate = true,
+                detached = false,
+                expire = function(arg1, arg2, arg3)
+                    ngx.log(ngx.ERR, "EXPIRE ", arg1, arg2, arg3)
+                end,
+                cancel = function(premature, arg1, arg2, arg3)
+                    ngx.log(ngx.ERR, "CANCEL ", premature, arg1, arg2, arg3)
+                end,
+                shm_name = "timer_shm",
+                key_name = "my_key",
+            }
+            local ok, err = pcall(timer.new, options, "arg1", nil, "arg3")
+            if ok then
+                ngx.say(true)
+            else
+                ngx.log(ngx.ERR, err)
+            end
+        }
+    }
+--- request
+GET /t
+--- response_body
+
+--- error_log
+the 'immediate' option requires 'recurring'
