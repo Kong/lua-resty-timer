@@ -36,6 +36,7 @@ __DATA__
                 end,
                 shm_name = "timer_shm",
                 key_name = "my_key",
+                --sub_interval = 0.1,
             }
             local ok, err = pcall(timer.new, options, "arg1", nil, "arg3")
             if ok then
@@ -72,6 +73,7 @@ true
                 end,
                 shm_name = "timer_shm",
                 key_name = "my_key",
+                sub_interval = 0.1,
             }
             local ok, err = pcall(timer.new, options, "arg1", nil, "arg3")
             if ok then
@@ -109,6 +111,7 @@ expected 'interval' to be greater than or equal to 0
                 end,
                 shm_name = "timer_shm",
                 key_name = "my_key",
+                sub_interval = 0.1,
             }
             local ok, err = pcall(timer.new, options, "arg1", nil, "arg3")
             if ok then
@@ -144,6 +147,7 @@ expected 'interval' to be a number
                 end,
                 shm_name = "timer_shm",
                 key_name = "my_key",
+                sub_interval = 0.1,
             }
             local ok, err = pcall(timer.new, options, "arg1", nil, "arg3")
             if ok then
@@ -181,6 +185,7 @@ expected 'expire' to be a function
                 --end,
                 shm_name = "timer_shm",
                 key_name = "my_key",
+                --sub_interval = 0.1,
             }
             local ok, err = pcall(timer.new, options, "arg1", nil, "arg3")
             if ok then
@@ -215,6 +220,7 @@ true
                 cancel = "string",
                 shm_name = "timer_shm",
                 key_name = "my_key",
+                sub_interval = 0.1,
             }
             local ok, err = pcall(timer.new, options, "arg1", nil, "arg3")
             if ok then
@@ -252,6 +258,7 @@ expected 'cancel' to be a function
                 end,
                 shm_name = "timer_shm",
                 --key_name = "my_key",
+                --sub_interval = 0.1,
             }
             local ok, err = pcall(timer.new, options, "arg1", nil, "arg3")
             if ok then
@@ -288,6 +295,7 @@ true
                 end,
                 shm_name = "timer_shm",
                 key_name = 0,
+                --sub_interval = 0.1,
             }
             local ok, err = pcall(timer.new, options, "arg1", nil, "arg3")
             if ok then
@@ -325,6 +333,7 @@ expected 'key_name' to be a string
                 end,
                 --shm_name = "timer_shm",
                 key_name = "my_key",
+                --sub_interval = 0.1,
             }
             local ok, err = pcall(timer.new, options, "arg1", nil, "arg3")
             if ok then
@@ -362,6 +371,7 @@ GET /t
                 end,
                 shm_name = "non-existing",
                 key_name = "my_key",
+                --sub_interval = 0.1,
             }
             local ok, err = pcall(timer.new, options, "arg1", nil, "arg3")
             if ok then
@@ -399,6 +409,7 @@ shm by name 'non-existing' not found
                 end,
                 shm_name = "timer_shm",
                 key_name = "my_key",
+                sub_interval = 0.1,
             }
             local ok, err = pcall(timer.new, options, "arg1", nil, "arg3")
             if ok then
@@ -414,3 +425,193 @@ GET /t
 
 --- error_log
 the 'immediate' option requires 'recurring'
+
+
+
+=== TEST 12: new() key_name required for sub_interval
+--- http_config eval: $::HttpConfig
+--- config
+    location = /t {
+        content_by_lua_block {
+            local timer = require("resty.timer")
+            local options = {
+                interval = 1,
+                recurring = true,
+                immediate = true,
+                detached = false,
+                expire = function(arg1, arg2, arg3)
+                    ngx.log(ngx.ERR, "EXPIRE ", arg1, arg2, arg3)
+                end,
+                cancel = function(premature, arg1, arg2, arg3)
+                    ngx.log(ngx.ERR, "CANCEL ", premature, arg1, arg2, arg3)
+                end,
+                shm_name = "timer_shm",
+                --key_name = "my_key",
+                sub_interval = 0.1,
+            }
+            local ok, err = pcall(timer.new, options, "arg1", nil, "arg3")
+            if ok then
+                ngx.say(true)
+            else
+                ngx.log(ngx.ERR, err)
+            end
+        }
+    }
+--- request
+GET /t
+--- response_body
+
+--- error_log
+'key_name' is required when specifying 'sub_interval'
+
+
+
+=== TEST 13: new() sub_interval >= 0
+--- http_config eval: $::HttpConfig
+--- config
+    location = /t {
+        content_by_lua_block {
+            local timer = require("resty.timer")
+            local options = {
+                interval = 1,
+                recurring = true,
+                immediate = true,
+                detached = false,
+                expire = function(arg1, arg2, arg3)
+                    ngx.log(ngx.ERR, "EXPIRE ", arg1, arg2, arg3)
+                end,
+                cancel = function(premature, arg1, arg2, arg3)
+                    ngx.log(ngx.ERR, "CANCEL ", premature, arg1, arg2, arg3)
+                end,
+                shm_name = "timer_shm",
+                key_name = "my_key",
+                sub_interval = -1,
+            }
+            local ok, err = pcall(timer.new, options, "arg1", nil, "arg3")
+            if ok then
+                ngx.say(true)
+            else
+                ngx.log(ngx.ERR, err)
+            end
+        }
+    }
+--- request
+GET /t
+--- response_body
+
+--- error_log
+expected 'sub_interval' to be greater than or equal to 0
+
+
+
+=== TEST 14: new() sub_interval <= interval
+--- http_config eval: $::HttpConfig
+--- config
+    location = /t {
+        content_by_lua_block {
+            local timer = require("resty.timer")
+            local options = {
+                interval = 1,
+                recurring = true,
+                immediate = true,
+                detached = false,
+                expire = function(arg1, arg2, arg3)
+                    ngx.log(ngx.ERR, "EXPIRE ", arg1, arg2, arg3)
+                end,
+                cancel = function(premature, arg1, arg2, arg3)
+                    ngx.log(ngx.ERR, "CANCEL ", premature, arg1, arg2, arg3)
+                end,
+                shm_name = "timer_shm",
+                key_name = "my_key",
+                sub_interval = 2,
+            }
+            local ok, err = pcall(timer.new, options, "arg1", nil, "arg3")
+            if ok then
+                ngx.say(true)
+            else
+                ngx.log(ngx.ERR, err)
+            end
+        }
+    }
+--- request
+GET /t
+--- response_body
+
+--- error_log
+expected 'sub_interval' to be less than or equal to 'interval'
+
+
+
+=== TEST 15: new() sub_interval must be a number
+--- http_config eval: $::HttpConfig
+--- config
+    location = /t {
+        content_by_lua_block {
+            local timer = require("resty.timer")
+            local options = {
+                interval = 1,
+                recurring = true,
+                immediate = true,
+                detached = false,
+                expire = function(arg1, arg2, arg3)
+                    ngx.log(ngx.ERR, "EXPIRE ", arg1, arg2, arg3)
+                end,
+                cancel = function(premature, arg1, arg2, arg3)
+                    ngx.log(ngx.ERR, "CANCEL ", premature, arg1, arg2, arg3)
+                end,
+                shm_name = "timer_shm",
+                key_name = "my_key",
+                sub_interval = "hello world",
+            }
+            local ok, err = pcall(timer.new, options, "arg1", nil, "arg3")
+            if ok then
+                ngx.say(true)
+            else
+                ngx.log(ngx.ERR, err)
+            end
+        }
+    }
+--- request
+GET /t
+--- response_body
+
+--- error_log
+expected 'sub_interval' to be a number
+
+
+
+=== TEST 16: new() sub_interval requires immediate
+--- http_config eval: $::HttpConfig
+--- config
+    location = /t {
+        content_by_lua_block {
+            local timer = require("resty.timer")
+            local options = {
+                interval = 1,
+                recurring = true,
+                immediate = false,
+                detached = false,
+                expire = function(arg1, arg2, arg3)
+                    ngx.log(ngx.ERR, "EXPIRE ", arg1, arg2, arg3)
+                end,
+                cancel = function(premature, arg1, arg2, arg3)
+                    ngx.log(ngx.ERR, "CANCEL ", premature, arg1, arg2, arg3)
+                end,
+                shm_name = "timer_shm",
+                key_name = "my_key",
+                sub_interval = 0.1,
+            }
+            local ok, err = pcall(timer.new, options, "arg1", nil, "arg3")
+            if ok then
+                ngx.say(true)
+            else
+                ngx.log(ngx.ERR, err)
+            end
+        }
+    }
+--- request
+GET /t
+--- response_body
+
+--- error_log
+'immediate' is required when specifying 'sub_interval'

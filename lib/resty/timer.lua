@@ -82,7 +82,7 @@ local handler = function(premature, timer_id)
 end
 
 local function schedule(self)
-  local interval = self.interval
+  local interval = self.sub_interval
   local id = self.id
   if not id then
     timer_id = timer_id + 1
@@ -132,12 +132,46 @@ end
 -- * `key_name` : (optional, string) key name to use in shm `shm_name`. If this key is given
 -- the timer will only be executed in a single worker. All timers (across all workers) with the same
 -- key will share this. The key will always be prefixed with this module's
--- name to prevent name collissions in the shm.
+-- name to prevent name collissions in the shm. This option requires the `shm_name` option.
+--
+-- * `sub_interval` : (optional, number) interval in milliseconds to check wether
+-- the timer needs to run. Only used for cross-worker timers. This setting reduces
+-- the maximum delay when a worker that currently runs the timer exits. In this case the
+-- maximum delay could be `interval * 2` before another worker picks it up. With
+-- this option set, the maximum delay will be `interval + sub_interval`.
+-- This option requires the `immediate` and `key_name` options.
 --
 -- @function new
 -- @param opts table with options
 -- @param ... arguments to pass to the callbacks `expire` and `cancel`.
 -- @return `timer` object or `nil + err`
+-- @usage
+-- local object = {
+--   name = "myName",
+-- }
+-- 
+-- function object:timer_callback(...)
+--   -- Note: here we use colon-":" syntax
+--   print("starting ", self.name, ": ", ...)   --> "starting myName: 1 two 3"
+-- end
+--
+-- function object.cancel_callback(premature, self, ...)
+--   -- Note: here we cannot use colon-":" syntax, due to the 'premature' parameter
+--   print("stopping ", self.name, ": ", ...)   --> "stopping myName: 1 two 3"
+-- end
+--
+-- function object:start()
+--   if self.timer then return end
+--   self.timer = timer({
+--     interval = 1000,
+--     expire = self.timer_callback,
+--     cancel = self.cancel_callback,
+--   }, self, 1, " two ", 3)  -- 'self' + 3 parameters to pass to the callbacks
+--
+-- function object:stop()
+--   if not self.timer then return end
+--   self.timer:cancel()
+-- end
 local function new(opts, ...)
   local self = {
     -- timer basics
@@ -152,6 +186,7 @@ local function new(opts, ...)
     -- shm info for node-wide timers
     shm = nil,                   -- the shm to use based on `opts.shm_name` (set below)
     key_name = opts.key_name,    -- unique shm key, if provided it will be a node-wide timer
+    sub_interval = opts.sub_interval, -- sub_interval to use in ms
     -- methods
     cancel = cancel,             -- cancel method
     schedule = schedule,         -- schedule method
@@ -169,6 +204,16 @@ local function new(opts, ...)
   end
   if self.cb_cancel then
     assert(type(self.cb_cancel) == "function", "expected 'cancel' to be a function")
+  end
+  if self.sub_interval then
+    self.sub_interval = tonumber(self.sub_interval)
+    assert(self.sub_interval, "expected 'sub_interval' to be a number")
+    assert(self.key_name, "'key_name' is required when specifying 'sub_interval'")
+    assert(self.immediate, "'immediate' is required when specifying 'sub_interval'")
+    assert(self.sub_interval >= 0, "expected 'sub_interval' to be greater than or equal to 0")
+    assert(self.sub_interval <= self.interval, "expected 'sub_interval' to be less than or equal to 'interval'")
+  else
+    self.sub_interval = self.interval
   end
   if self.key_name then
     assert(type(self.key_name) == "string", "expected 'key_name' to be a string")

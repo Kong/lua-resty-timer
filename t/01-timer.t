@@ -3,7 +3,7 @@ use Cwd qw(cwd);
 
 workers(1);
 
-plan tests => repeat_each() * (blocks() * 3) - 3;
+plan tests => repeat_each() * (blocks() * 3) - 4;
 
 my $pwd = cwd();
 
@@ -143,6 +143,55 @@ GET /t
             local t = timer(options, "arg1", nil, "arg3")
             ngx.sleep(0.15)  -- could be 1 occurence, +1 for immediate
             ngx.say(count)
+        }
+    }
+--- request
+GET /t
+--- response_body
+2
+
+
+
+=== TEST 5: new() sub_interval is honored
+--- http_config eval: $::HttpConfig
+--- config
+    location = /t {
+        content_by_lua_block {
+            local timer = require("resty.timer")
+            local count = 0
+            local t = {}
+            ngx.update_time()
+            local t0 = ngx.now()
+            local options = {
+                interval = 0.1,
+                recurring = true,
+                immediate = true,
+                detached = false,
+                expire = function(t_id)
+                    count = count + 1
+                    ngx.update_time()
+                    --print("========EXEC=======> ", t_id, " @ ", 1000*(ngx.now() - t0))
+                    if t_id == 1 then
+                        t[t_id]:cancel() -- cancel so it ran only once
+                    end
+                end,
+                shm_name = "timer_shm",
+                key_name = "my_key",
+                sub_interval = 0.01,
+            }
+            for x = 1,2 do
+                -- create 2 timers with same shm key
+                -- only 1 should run
+                t[x] = timer(options, x)
+                ngx.update_time()
+                --print("=======SCHED=======> ",x, " @ ", 1000*(ngx.now() - t0))
+                -- wait till half way interval before scheduling the second one
+                ngx.sleep(options.interval / 2)
+            end
+            -- first timer ran on start, so count == 1, timer 1 was immediately cancelled
+            ngx.sleep(options.interval / 2) -- lock set by 1st timer expires, the first half was already done when creating the timers above
+            ngx.sleep(options.sub_interval * 1.5) -- by now the second timer should have taken over (count == 2)
+            ngx.say(count) --> 2; first when first timer starts, 2nd by second timer after it picked up
         }
     }
 --- request

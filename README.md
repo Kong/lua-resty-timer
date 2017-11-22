@@ -4,11 +4,11 @@
 
 Extended timers for OpenResty
 
-# Status
+## Status
 
 This library is still under early development.
 
-# Synopsis
+## Synopsis
 
 ```nginx
 http {
@@ -37,6 +37,7 @@ http {
             end,
             shm_name = "timer_shm",   -- shm to use for node-wide timers
             key_name = "my_key",      -- key-name to use for node-wide timers
+            sub_interval = 0.1,       -- max cross worker extra delay
         }
 
         -- create and add to object, but also pass it as 'self' to the handler
@@ -51,7 +52,7 @@ http {
 }
 ```
 
-# Description
+## Description
 
 The OpenResty timer is fairly limited, this timer adds a number of common
 options as parameters without having to recode (and retest) them in each
@@ -77,7 +78,14 @@ project.
 See the [online LDoc documentation](http://kong.github.io/lua-resty-timer)
 for the complete API.
 
-# Copyright and License
+## History
+
+### 0.1 (22-Nov-2018) Initial release
+
+  * Added `sub_interval` option to reduce delays
+  * Initial upload
+
+## Copyright and License
 
 ```
 Copyright 2017 Kong Inc.
