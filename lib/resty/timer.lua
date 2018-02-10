@@ -105,7 +105,7 @@ end
 --- Create a new timer.
 -- The `opts` table supports the following parameters:
 --
--- * `interval` : (number) interval in milliseconds after which the timer expires
+-- * `interval` : (number) interval in seconds after which the timer expires
 --
 -- * `recurring` : (boolean) set to `true` to make it a recurring timer
 --
@@ -132,9 +132,9 @@ end
 -- * `key_name` : (optional, string) key name to use in shm `shm_name`. If this key is given
 -- the timer will only be executed in a single worker. All timers (across all workers) with the same
 -- key will share this. The key will always be prefixed with this module's
--- name to prevent name collissions in the shm. This option requires the `shm_name` option.
+-- name to prevent name collisions in the shm. This option requires the `shm_name` option.
 --
--- * `sub_interval` : (optional, number) interval in milliseconds to check wether
+-- * `sub_interval` : (optional, number) interval in milliseconds to check whether
 -- the timer needs to run. Only used for cross-worker timers. This setting reduces
 -- the maximum delay when a worker that currently runs the timer exits. In this case the
 -- maximum delay could be `interval * 2` before another worker picks it up. With
