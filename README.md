@@ -80,7 +80,12 @@ for the complete API.
 
 ## History
 
-### 0.1 (22-Nov-2018) Initial release
+### 0.2 (12-Feb-2018) Bug fix
+
+  * Fix: bugfix in `unpack` function not honoring table length parameter
+  * Docs: small fixes and typo's
+
+### 0.1 (22-Nov-2017) Initial release
 
   * Added `sub_interval` option to reduce delays
   * Initial upload
@@ -88,7 +93,7 @@ for the complete API.
 ## Copyright and License
 
 ```
-Copyright 2017 Kong Inc.
+Copyright 2017 - 2018 Kong Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.

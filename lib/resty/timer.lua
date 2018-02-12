@@ -1,14 +1,14 @@
 --------------------------------------------------------------------------
 -- Extended timer.
 --
--- @copyright 2017 Kong Inc.
+-- @copyright 2017 - 2018 Kong Inc.
 -- @author Thijs Schreijer
 -- @license Apache 2.0
 
 local timer_at = ngx.timer.at
 local pack = function(...) return { n = select("#", ...), ...} end
 local _unpack = unpack or table.unpack
-local unpack = function(t, i, j) return _unpack(t, i or 1, j or t.n, #t) end
+local unpack = function(t, i, j) return _unpack(t, i or 1, j or t.n or #t) end
 local anchor_registry = {}
 local gc_registry = setmetatable({},{ __mode = "v" })
 local timer_id = 0
@@ -163,7 +163,7 @@ end
 -- function object:start()
 --   if self.timer then return end
 --   self.timer = timer({
---     interval = 1000,
+--     interval = 1,
 --     expire = self.timer_callback,
 --     cancel = self.cancel_callback,
 --   }, self, 1, " two ", 3)  -- 'self' + 3 parameters to pass to the callbacks
