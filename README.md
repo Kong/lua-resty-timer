@@ -69,7 +69,7 @@ project.
 
 * garbage collectible timers, enabling timers to (optionally) be attached to
   objects and automatically stop when garbage collected.
-  
+
 
 * node-wide timers: the same timer started in each worker will still only
   run once across the system. If the worker running it is removed the
@@ -79,6 +79,12 @@ See the [online LDoc documentation](http://kong.github.io/lua-resty-timer)
 for the complete API.
 
 ## History
+
+### 0.3 (28-May-2018)
+
+  * Feat: added cancellation callback invocation on timer being GC'ed. This
+  changes the first argument of the `cancel` callback, and hence is
+  breaking.
 
 ### 0.2 (12-Feb-2018) Bug fix
 

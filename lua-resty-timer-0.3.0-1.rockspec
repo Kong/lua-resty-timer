@@ -1,8 +1,8 @@
 package = "lua-resty-timer"
-version = "0.2.0-1"
+version = "0.3.0-1"
 source = {
-   url = "https://github.com/kong/lua-resty-timer/archive/0.2.0.tar.gz",
-   dir = "lua-resty-timer-0.2.0"
+   url = "https://github.com/kong/lua-resty-timer/archive/0.3.0.tar.gz",
+   dir = "lua-resty-timer-0.3.0"
 }
 description = {
    summary = "Extended timer library for OpenResty",
@@ -17,7 +17,7 @@ dependencies = {
 }
 build = {
    type = "builtin",
-   modules = { 
+   modules = {
      ["resty.timer"] = "lib/resty/timer.lua",
    }
 }
