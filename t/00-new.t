@@ -31,8 +31,8 @@ __DATA__
                 expire = function(arg1, arg2, arg3)
                     ngx.log(ngx.ERR, "EXPIRE ", arg1, arg2, arg3)
                 end,
-                cancel = function(premature, arg1, arg2, arg3)
-                    ngx.log(ngx.ERR, "CANCEL ", premature, arg1, arg2, arg3)
+                cancel = function(reason, arg1, arg2, arg3)
+                    ngx.log(ngx.ERR, "CANCEL ", reason, arg1, arg2, arg3)
                 end,
                 shm_name = "timer_shm",
                 key_name = "my_key",
@@ -68,8 +68,8 @@ true
                 expire = function(arg1, arg2, arg3)
                     ngx.log(ngx.ERR, "EXPIRE ", arg1, arg2, arg3)
                 end,
-                cancel = function(premature, arg1, arg2, arg3)
-                    ngx.log(ngx.ERR, "CANCEL ", premature, arg1, arg2, arg3)
+                cancel = function(reason, arg1, arg2, arg3)
+                    ngx.log(ngx.ERR, "CANCEL ", reason, arg1, arg2, arg3)
                 end,
                 shm_name = "timer_shm",
                 key_name = "my_key",
@@ -106,8 +106,8 @@ expected 'interval' to be greater than or equal to 0
                 expire = function(arg1, arg2, arg3)
                     ngx.log(ngx.ERR, "EXPIRE ", arg1, arg2, arg3)
                 end,
-                cancel = function(premature, arg1, arg2, arg3)
-                    ngx.log(ngx.ERR, "CANCEL ", premature, arg1, arg2, arg3)
+                cancel = function(reason, arg1, arg2, arg3)
+                    ngx.log(ngx.ERR, "CANCEL ", reason, arg1, arg2, arg3)
                 end,
                 shm_name = "timer_shm",
                 key_name = "my_key",
@@ -142,8 +142,8 @@ expected 'interval' to be a number
                 immediate = false,
                 detached = false,
                 expire = "string",
-                cancel = function(premature, arg1, arg2, arg3)
-                    ngx.log(ngx.ERR, "CANCEL ", premature, arg1, arg2, arg3)
+                cancel = function(reason, arg1, arg2, arg3)
+                    ngx.log(ngx.ERR, "CANCEL ", reason, arg1, arg2, arg3)
                 end,
                 shm_name = "timer_shm",
                 key_name = "my_key",
@@ -180,8 +180,8 @@ expected 'expire' to be a function
                 expire = function(arg1, arg2, arg3)
                     ngx.log(ngx.ERR, "EXPIRE ", arg1, arg2, arg3)
                 end,
-                --cancel = function(premature, arg1, arg2, arg3)
-                --    ngx.log(ngx.ERR, "CANCEL ", premature, arg1, arg2, arg3)
+                --cancel = function(reason, arg1, arg2, arg3)
+                --    ngx.log(ngx.ERR, "CANCEL ", reason, arg1, arg2, arg3)
                 --end,
                 shm_name = "timer_shm",
                 key_name = "my_key",
@@ -253,8 +253,8 @@ expected 'cancel' to be a function
                 expire = function(arg1, arg2, arg3)
                     ngx.log(ngx.ERR, "EXPIRE ", arg1, arg2, arg3)
                 end,
-                cancel = function(premature, arg1, arg2, arg3)
-                    ngx.log(ngx.ERR, "CANCEL ", premature, arg1, arg2, arg3)
+                cancel = function(reason, arg1, arg2, arg3)
+                    ngx.log(ngx.ERR, "CANCEL ", reason, arg1, arg2, arg3)
                 end,
                 shm_name = "timer_shm",
                 --key_name = "my_key",
@@ -290,8 +290,8 @@ true
                 expire = function(arg1, arg2, arg3)
                     ngx.log(ngx.ERR, "EXPIRE ", arg1, arg2, arg3)
                 end,
-                cancel = function(premature, arg1, arg2, arg3)
-                    ngx.log(ngx.ERR, "CANCEL ", premature, arg1, arg2, arg3)
+                cancel = function(reason, arg1, arg2, arg3)
+                    ngx.log(ngx.ERR, "CANCEL ", reason, arg1, arg2, arg3)
                 end,
                 shm_name = "timer_shm",
                 key_name = 0,
@@ -328,8 +328,8 @@ expected 'key_name' to be a string
                 expire = function(arg1, arg2, arg3)
                     ngx.log(ngx.ERR, "EXPIRE ", arg1, arg2, arg3)
                 end,
-                cancel = function(premature, arg1, arg2, arg3)
-                    ngx.log(ngx.ERR, "CANCEL ", premature, arg1, arg2, arg3)
+                cancel = function(reason, arg1, arg2, arg3)
+                    ngx.log(ngx.ERR, "CANCEL ", reason, arg1, arg2, arg3)
                 end,
                 --shm_name = "timer_shm",
                 key_name = "my_key",
@@ -366,8 +366,8 @@ GET /t
                 expire = function(arg1, arg2, arg3)
                     ngx.log(ngx.ERR, "EXPIRE ", arg1, arg2, arg3)
                 end,
-                cancel = function(premature, arg1, arg2, arg3)
-                    ngx.log(ngx.ERR, "CANCEL ", premature, arg1, arg2, arg3)
+                cancel = function(reason, arg1, arg2, arg3)
+                    ngx.log(ngx.ERR, "CANCEL ", reason, arg1, arg2, arg3)
                 end,
                 shm_name = "non-existing",
                 key_name = "my_key",
@@ -404,8 +404,8 @@ shm by name 'non-existing' not found
                 expire = function(arg1, arg2, arg3)
                     ngx.log(ngx.ERR, "EXPIRE ", arg1, arg2, arg3)
                 end,
-                cancel = function(premature, arg1, arg2, arg3)
-                    ngx.log(ngx.ERR, "CANCEL ", premature, arg1, arg2, arg3)
+                cancel = function(reason, arg1, arg2, arg3)
+                    ngx.log(ngx.ERR, "CANCEL ", reason, arg1, arg2, arg3)
                 end,
                 shm_name = "timer_shm",
                 key_name = "my_key",
@@ -442,8 +442,8 @@ the 'immediate' option requires 'recurring'
                 expire = function(arg1, arg2, arg3)
                     ngx.log(ngx.ERR, "EXPIRE ", arg1, arg2, arg3)
                 end,
-                cancel = function(premature, arg1, arg2, arg3)
-                    ngx.log(ngx.ERR, "CANCEL ", premature, arg1, arg2, arg3)
+                cancel = function(reason, arg1, arg2, arg3)
+                    ngx.log(ngx.ERR, "CANCEL ", reason, arg1, arg2, arg3)
                 end,
                 shm_name = "timer_shm",
                 --key_name = "my_key",
@@ -480,8 +480,8 @@ GET /t
                 expire = function(arg1, arg2, arg3)
                     ngx.log(ngx.ERR, "EXPIRE ", arg1, arg2, arg3)
                 end,
-                cancel = function(premature, arg1, arg2, arg3)
-                    ngx.log(ngx.ERR, "CANCEL ", premature, arg1, arg2, arg3)
+                cancel = function(reason, arg1, arg2, arg3)
+                    ngx.log(ngx.ERR, "CANCEL ", reason, arg1, arg2, arg3)
                 end,
                 shm_name = "timer_shm",
                 key_name = "my_key",
@@ -518,8 +518,8 @@ expected 'sub_interval' to be greater than or equal to 0
                 expire = function(arg1, arg2, arg3)
                     ngx.log(ngx.ERR, "EXPIRE ", arg1, arg2, arg3)
                 end,
-                cancel = function(premature, arg1, arg2, arg3)
-                    ngx.log(ngx.ERR, "CANCEL ", premature, arg1, arg2, arg3)
+                cancel = function(reason, arg1, arg2, arg3)
+                    ngx.log(ngx.ERR, "CANCEL ", reason, arg1, arg2, arg3)
                 end,
                 shm_name = "timer_shm",
                 key_name = "my_key",
@@ -556,8 +556,8 @@ expected 'sub_interval' to be less than or equal to 'interval'
                 expire = function(arg1, arg2, arg3)
                     ngx.log(ngx.ERR, "EXPIRE ", arg1, arg2, arg3)
                 end,
-                cancel = function(premature, arg1, arg2, arg3)
-                    ngx.log(ngx.ERR, "CANCEL ", premature, arg1, arg2, arg3)
+                cancel = function(reason, arg1, arg2, arg3)
+                    ngx.log(ngx.ERR, "CANCEL ", reason, arg1, arg2, arg3)
                 end,
                 shm_name = "timer_shm",
                 key_name = "my_key",
@@ -594,8 +594,8 @@ expected 'sub_interval' to be a number
                 expire = function(arg1, arg2, arg3)
                     ngx.log(ngx.ERR, "EXPIRE ", arg1, arg2, arg3)
                 end,
-                cancel = function(premature, arg1, arg2, arg3)
-                    ngx.log(ngx.ERR, "CANCEL ", premature, arg1, arg2, arg3)
+                cancel = function(reason, arg1, arg2, arg3)
+                    ngx.log(ngx.ERR, "CANCEL ", reason, arg1, arg2, arg3)
                 end,
                 shm_name = "timer_shm",
                 key_name = "my_key",

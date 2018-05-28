@@ -12,7 +12,12 @@ local unpack = function(t, i, j) return _unpack(t, i or 1, j or t.n or #t) end
 local anchor_registry = {}
 local gc_registry = setmetatable({},{ __mode = "v" })
 local timer_id = 0
-local KEY_PREFIX = "[lua-resty-timer]"
+
+local KEY_PREFIX    = "[lua-resty-timer]"
+local LOG_PREFIX    = "[resty-timer] "
+local CANCEL_GC     = "GC"
+local CANCEL_SYSTEM = "SYSTEM"
+local CANCEL_USER   = "USER"
 
 --- Cancel the timer.
 -- Will run the 'cancel'-callback if provided. Will only cancel the timer
@@ -20,7 +25,7 @@ local KEY_PREFIX = "[lua-resty-timer]"
 -- @function timer:cancel
 -- @return results of the 'cancel' callback, or `true` if no callback was provided
 -- or `nil + "already cancelled"` if called repeatedly
--- @usage local t, err = timer(options)  -- create a timer
+-- @usage local t, err = resty_timer(options)  -- create a timer
 -- if t then
 --   t:cancel()  -- immediately cancel the timer again
 -- end
@@ -36,8 +41,9 @@ local function cancel(self)
   end
 
   self.cancel_flag = true
+  self.premature_reason = self.premature_reason or CANCEL_USER
   if self.cb_cancel then
-    return self.cb_cancel(self.premature_flag, unpack(self.args))
+    return self.cb_cancel(self.premature_reason, unpack(self.args))
   end
   return true
 end
@@ -55,7 +61,7 @@ local handler = function(premature, timer_id)
   end
 
   if premature then   -- premature, so we're being cancelled by the system
-    self.premature_flag = true
+    self.premature_reason = self.premature_reason or CANCEL_SYSTEM
     return self:cancel()
   end
 
@@ -74,7 +80,7 @@ local handler = function(premature, timer_id)
       if err == "exists" then
         return -- we're not up
       end
-      ngx.log(ngx.ERR, "failed to add key '", self.key_name, "': ", err)
+      ngx.log(ngx.ERR, LOG_PREFIX, "failed to add key '", self.key_name, "': ", err)
     end
   end
 
@@ -97,7 +103,7 @@ local function schedule(self)
   if ok then
     registry[id] = self
   else
-    ngx.log(ngx.ERR, "failed to create timer: " .. err)
+    ngx.log(ngx.ERR, LOG_PREFIX, "failed to create timer: " .. err)
   end
   return ok and self or ok, err
 end
@@ -119,12 +125,10 @@ end
 -- * `expire` : (function) callback called as `function(...)` with the arguments passed
 -- as extra beyond the `opts` table to this `new` function.
 --
--- * `cancel` : (optional, function) callback called as `function(premature, ...)`. Where
--- `premature` is the flag indicating that the timer is cancelled by the
--- system, see `ngx.timer.at` documentation. The additional arguments will be the
--- arguments as passed to this `new` function, beyond the `opts` table.</br>
--- *NOTE*: will be called when cancelled by the user or the system, but *not* when
--- garbage collected.
+-- * `cancel` : (optional, function) callback called as `function(reason, ...)`. Where
+-- `reason` indicates why it was cancelled. The additional arguments will be the
+-- arguments as passed to this `new` function, beyond the `opts` table. See the
+-- usage example below for possible values for `reason`.
 --
 -- * `shm_name` : (optional, string) name of the shm to use to synchronize with the
 -- other workers if `key_name` is set.
@@ -149,20 +153,29 @@ end
 -- local object = {
 --   name = "myName",
 -- }
--- 
+--
 -- function object:timer_callback(...)
 --   -- Note: here we use colon-":" syntax
 --   print("starting ", self.name, ": ", ...)   --> "starting myName: 1 two 3"
 -- end
 --
--- function object.cancel_callback(premature, self, ...)
---   -- Note: here we cannot use colon-":" syntax, due to the 'premature' parameter
+-- function object.cancel_callback(reason, self, ...)
+--   -- Note: here we cannot use colon-":" syntax, due to the 'reason' parameter
 --   print("stopping ", self.name, ": ", ...)   --> "stopping myName: 1 two 3"
+--   if reason == resty_timer.CANCEL_USER then
+--     -- user called `timer:cancel`
+--   elseif reason == resty_timer.CANCEL_GC then
+--     -- the timer was garbage-collected
+--   elseif reason == resty_timer.CANCEL_SYSTEM then
+--     -- prematurely cancelled by the system (worker is exiting)
+--   else
+--     -- should not happen
+--   end
 -- end
 --
 -- function object:start()
 --   if self.timer then return end
---   self.timer = timer({
+--   self.timer = resty_timer({
 --     interval = 1,
 --     expire = self.timer_callback,
 --     cancel = self.cancel_callback,
@@ -193,7 +206,8 @@ local function new(opts, ...)
     -- internal stuff
     id = nil,                    -- timer id in the registry
     cancel_flag = nil,           -- indicator timer was cancelled
-    premature_flag = nil,        -- inicator we're being cancelled by the system
+    premature_reason = nil,      -- inicator why we're being cancelled
+    gc_proxy = nil,              -- userdata proxy to track GC
   }
 
   assert(self.interval, "expected 'interval' to be a number")
@@ -204,6 +218,14 @@ local function new(opts, ...)
   end
   if self.cb_cancel then
     assert(type(self.cb_cancel) == "function", "expected 'cancel' to be a function")
+    if not self.detached then
+      -- add a proxy to track GC
+      self.gc_proxy = newproxy(true)
+      getmetatable(self.gc_proxy).__gc = function()
+          self.premature_reason = self.premature_reason or CANCEL_GC
+          return self:cancel()
+        end
+    end
   end
   if self.sub_interval then
     self.sub_interval = tonumber(self.sub_interval)
@@ -227,8 +249,11 @@ local function new(opts, ...)
 end
 
 return setmetatable(
-  { 
+  {
     new = new,
+    CANCEL_GC = CANCEL_GC,
+    CANCEL_SYSTEM = CANCEL_SYSTEM,
+    CANCEL_USER = CANCEL_USER,
 --    __anchor = anchor_registry,   -- for test purposes
 --    __gc = gc_registry,           -- for test purposes
   }, {

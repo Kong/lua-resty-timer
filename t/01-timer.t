@@ -31,14 +31,14 @@ __DATA__
                 expire = function(arg1, arg2, arg3)
                     ngx.log(ngx.ERR, "EXPIRE ", arg1, arg2, arg3)
                 end,
-                cancel = function(premature, arg1, arg2, arg3)
-                    ngx.log(ngx.ERR, "CANCEL ", premature, arg1, arg2, arg3)
+                cancel = function(reason, arg1, arg2, arg3)
+                    ngx.log(ngx.ERR, "CANCEL ", reason, arg1, arg2, arg3)
                 end,
                 --shm_name = "timer_shm",
                 --key_name = "my_key",
             }
             local t = timer(options, "arg1", nil, "arg3")
-            ngx.sleep(0.55)  -- 5 occurences
+            ngx.sleep(0.59)  -- 5 occurences
             t:cancel()
             ngx.say(true)
         }
@@ -47,14 +47,14 @@ __DATA__
 GET /t
 --- response_body
 true
---- grep_error_log eval: qr/EXPIRE arg1nilarg3|CANCEL nilarg1nilarg3/
+--- grep_error_log eval: qr/EXPIRE arg1nilarg3|CANCEL falsearg1nilarg3/
 --- grep_error_log_out eval
 qr/^EXPIRE arg1nilarg3
 EXPIRE arg1nilarg3
 EXPIRE arg1nilarg3
 EXPIRE arg1nilarg3
 EXPIRE arg1nilarg3
-CANCEL nilarg1nilarg3$/
+CANCEL falsearg1nilarg3$/
 
 
 

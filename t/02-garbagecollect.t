@@ -24,6 +24,7 @@ __DATA__
         content_by_lua_block {
             local timer = require("resty.timer")
             local external_count = 0
+            local cancel_reason = nil
             local object = {  -- create some object with a timer
                 count = 0,
                 handler = function(self)
@@ -31,6 +32,7 @@ __DATA__
                     external_count = self.count
                 end,
                 timer = nil, -- to be set below
+                name = "just-a-timer",
             }
             local options = {
                 interval = 0.1,
@@ -40,6 +42,10 @@ __DATA__
                 expire = object.handler,  -- insert our object based handler
                 --shm_name = "timer_shm",
                 --key_name = "my_key",
+                cancel = function(reason, object)
+                    cancel_reason = object.name .. " GC'ed? " ..
+                        tostring(reason == timer.CANCEL_GC)
+                end,
             }
             -- now add to object, but also pass along object !!
             object.timer = timer(options, object)
@@ -47,13 +53,13 @@ __DATA__
             collectgarbage()
             collectgarbage()
             ngx.sleep(0.55)  -- could be 5 occurences
-            ngx.say(external_count)
+            ngx.say(external_count, cancel_reason)
         }
     }
 --- request
 GET /t
 --- response_body
-0
+0just-a-timer GC'ed? true
 
 
 
