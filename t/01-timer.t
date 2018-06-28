@@ -47,14 +47,14 @@ __DATA__
 GET /t
 --- response_body
 true
---- grep_error_log eval: qr/EXPIRE arg1nilarg3|CANCEL falsearg1nilarg3/
+--- grep_error_log eval: qr/EXPIRE arg1nilarg3|CANCEL USERarg1nilarg3/
 --- grep_error_log_out eval
 qr/^EXPIRE arg1nilarg3
 EXPIRE arg1nilarg3
 EXPIRE arg1nilarg3
 EXPIRE arg1nilarg3
 EXPIRE arg1nilarg3
-CANCEL falsearg1nilarg3$/
+CANCEL USERarg1nilarg3$/
 
 
 
