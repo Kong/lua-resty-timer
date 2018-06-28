@@ -109,7 +109,8 @@ local function schedule(self)
 end
 
 --- Create a new timer.
--- The `opts` table supports the following parameters:
+-- The `opts` table is not stored nor altered, and can hence be safely reused to
+-- create multiple timers. It supports the following parameters:
 --
 -- * `interval` : (number) interval in seconds after which the timer expires
 --
@@ -182,8 +183,10 @@ end
 --   }, self, 1, " two ", 3)  -- 'self' + 3 parameters to pass to the callbacks
 --
 -- function object:stop()
---   if not self.timer then return end
---   self.timer:cancel()
+--   if self.timer then
+--     self.timer:cancel()
+--     self.timer = nil
+--   end
 -- end
 local function new(opts, ...)
   local self = {
