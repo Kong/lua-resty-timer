@@ -31,9 +31,8 @@ http {
             immediate = true,         -- initial interval will be 0
             detached = false,         -- run detached, or be garbagecollectible
             expire = object.handler,  -- callback on timer expiry
-            cancel = function(premature, self, param1)
-                -- will be called when the timer gets cancelled by the user
-                -- or the system (but not when GC'ed)
+            cancel = function(reason, self, param1)
+                -- will be called when the timer gets cancelled
             end,
             shm_name = "timer_shm",   -- shm to use for node-wide timers
             key_name = "my_key",      -- key-name to use for node-wide timers
@@ -114,5 +113,5 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ```
 
-[badge-travis-url]: https://travis-ci.com/kong/lua-resty-timer/branches
-[badge-travis-image]: https://travis-ci.com/kong/lua-resty-timer.svg?token=cpcsrmGmJZdztxDeoJqq&branch=master
+[badge-travis-url]: https://travis-ci.org/Kong/lua-resty-timer/branches
+[badge-travis-image]: https://travis-ci.org/Kong/lua-resty-timer.svg?branch=master
