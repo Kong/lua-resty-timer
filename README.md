@@ -63,8 +63,7 @@ project.
 
 * cancellable timers
 
-* cancel callback, called when the timer is cancelled (either by the user or
-  by the system)
+* cancel callback, called when the timer is cancelled
 
 * garbage collectible timers, enabling timers to (optionally) be attached to
   objects and automatically stop when garbage collected.

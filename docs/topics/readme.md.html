@@ -50,21 +50,21 @@
 
 <div id="content">
 
+    <h1>lua-resty-timer</h1>
 
-<h1>lua-resty-timer</h1>
-
-<p><a href="https://travis-ci.com/kong/lua-resty-timer/branches"><img src="https://travis-ci.com/kong/lua-resty-timer.svg?token=cpcsrmGmJZdztxDeoJqq&amp;branch=master" alt="Build Status"/></a></p>
+<p><a href="https://travis-ci.org/Kong/lua-resty-timer/branches"><img src="https://travis-ci.org/Kong/lua-resty-timer.svg?branch=master" alt="Build Status" /></a></p>
 
 <p>Extended timers for OpenResty</p>
 
 <p><a name="Status"></a></p>
+
 <h2>Status</h2>
 
 <p>This library is still under early development.</p>
 
 <p><a name="Synopsis"></a></p>
-<h2>Synopsis</h2>
 
+<h2>Synopsis</h2>
 
 <pre>
 http {
@@ -87,9 +87,8 @@ http {
 </span>            immediate = <span class="keyword">true</span>,         <span class="comment">-- initial interval will be 0
 </span>            detached = <span class="keyword">false</span>,         <span class="comment">-- run detached, or be garbagecollectible
 </span>            expire = object.handler,  <span class="comment">-- callback on timer expiry
-</span>            cancel = <span class="keyword">function</span>(premature, self, param1)
-                <span class="comment">-- will be called when the timer gets cancelled by the user
-</span>                <span class="comment">-- or the system (but not when GC'ed)
+</span>            cancel = <span class="keyword">function</span>(reason, self, param1)
+                <span class="comment">-- will be called when the timer gets cancelled
 </span>            <span class="keyword">end</span>,
             shm_name = <span class="string">"timer_shm"</span>,   <span class="comment">-- shm to use for node-wide timers
 </span>            key_name = <span class="string">"my_key"</span>,      <span class="comment">-- key-name to use for node-wide timers
@@ -110,6 +109,7 @@ http {
 
 
 <p><a name="Description"></a></p>
+
 <h2>Description</h2>
 
 <p>The OpenResty timer is fairly limited, this timer adds a number of common
@@ -117,47 +117,52 @@ options as parameters without having to recode (and retest) them in each
 project.</p>
 
 <ul>
-    <li><p>recurring timers (supported by OR as well through <code>ngx.timer.every</code>)</p></li>
-    <li><p>immediate first run for recurring timers</p></li>
-    <li><p>cancellable timers</p></li>
-    <li><p>cancel callback, called when the timer is cancelled (either by the user or
-    by the system)</p></li>
-    <li><p>garbage collectible timers, enabling timers to (optionally) be attached to
-    objects and automatically stop when garbage collected.</p></li>
-    <li><p>node-wide timers: the same timer started in each worker will still only
-    run once across the system. If the worker running it is removed the
-    timer will automatically be executed on another worker.</p></li>
+<li><p>recurring timers (supported by OR as well through <code>ngx.timer.every</code>)</p></li>
+<li><p>immediate first run for recurring timers</p></li>
+<li><p>cancellable timers</p></li>
+<li><p>cancel callback, called when the timer is cancelled</p></li>
+<li><p>garbage collectible timers, enabling timers to (optionally) be attached to
+objects and automatically stop when garbage collected.</p></li>
+<li><p>node-wide timers: the same timer started in each worker will still only
+run once across the system. If the worker running it is removed the
+timer will automatically be executed on another worker.</p></li>
 </ul>
+
 
 <p>See the <a href="http://kong.github.io/lua-resty-timer">online LDoc documentation</a>
 for the complete API.</p>
 
 <p><a name="History"></a></p>
+
 <h2>History</h2>
 
 <h3>0.3 (28-May-2018)</h3>
 
 <ul>
-    <li>Feat: added cancellation callback invocation on timer being GC'ed. This
-    changes the first argument of the <a href="../index.html#cancel">cancel</a> callback, and hence is
-    breaking.</li>
+<li>Feat: added cancellation callback invocation on timer being GC'ed. This
+changes the first argument of the <a href="../index.html#cancel">cancel</a> callback, and hence is
+breaking.</li>
 </ul>
+
 
 <h3>0.2 (12-Feb-2018) Bug fix</h3>
 
 <ul>
-    <li>Fix: bugfix in <a href="https://www.lua.org/manual/5.1/manual.html#pdf-unpack">unpack</a> function not honoring table length parameter</li>
-    <li>Docs: small fixes and typo's</li>
+<li>Fix: bugfix in <a href="https://www.lua.org/manual/5.1/manual.html#pdf-unpack">unpack</a> function not honoring table length parameter</li>
+<li>Docs: small fixes and typo&rsquo;s</li>
 </ul>
+
 
 <h3>0.1 (22-Nov-2017) Initial release</h3>
 
 <ul>
-    <li>Added <code>sub_interval</code> option to reduce delays</li>
-    <li>Initial upload</li>
+<li>Added <code>sub_interval</code> option to reduce delays</li>
+<li>Initial upload</li>
 </ul>
 
+
 <p><a name="Copyright_and_License"></a></p>
+
 <h2>Copyright and License</h2>
 
 <pre><code> Copyright 2017 - 2018 Kong Inc.
@@ -175,14 +180,11 @@ for the complete API.</p>
  limitations under the License.
 </code></pre>
 
-
-
-
 </div> <!-- id="content" -->
 </div> <!-- id="main" -->
 <div id="about">
 <i>generated by <a href="http://github.com/stevedonovan/LDoc">LDoc 1.4.6</a></i>
-<i style="float:right;">Last updated 2018-05-28 13:29:02 </i>
+<i style="float:right;">Last updated 2018-10-28 07:47:48 </i>
 </div> <!-- id="about" -->
 </div> <!-- id="container" -->
 </body>
