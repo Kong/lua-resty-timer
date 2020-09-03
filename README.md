@@ -6,7 +6,7 @@ Extended timers for OpenResty
 
 ## Status
 
-This library is still under early development.
+This library is production ready.
 
 ## Synopsis
 
