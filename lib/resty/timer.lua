@@ -7,7 +7,7 @@
 
 local timer_at = ngx.timer.at
 local pack = function(...) return { n = select("#", ...), ...} end
-local _unpack = unpack or table.unpack
+local _unpack = unpack or table.unpack -- luacheck: ignore
 local unpack = function(t, i, j) return _unpack(t, i or 1, j or t.n or #t) end
 local anchor_registry = {}
 local gc_registry = setmetatable({},{ __mode = "v" })
