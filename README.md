@@ -91,7 +91,7 @@ Versioning is strictly based on [Semantic Versioning](https://semver.org/)
 * push commit and tag
 * upload rock to luarocks: `luarocks upload rockspecs/[name] --api-key=abc`
 
-### Unreleased
+### 1.0.0 (21-Sep-2020)
 
   * Change [BREAKING]: the recurring timers are now implemented as a sleeping
   thread which is more efficient. Side effect is that the timer only gets

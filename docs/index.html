@@ -39,7 +39,7 @@
 </ul>
 <h2>Topics</h2>
 <ul class="">
-  <li><a href="topics/readme.md.html">readme</a></li>
+  <li><a href="topics/README.md.html">README</a></li>
 </ul>
 
 </div>
@@ -48,10 +48,12 @@
 
 <h1>Module <code>resty.timer</code></h1>
 <p>Extended timer.</p>
-<p></p>
+<p>
+
+</p>
     <h3>Info:</h3>
     <ul>
-        <li><strong>Copyright</strong>: 2017 - 2018 Kong Inc.</li>
+        <li><strong>Copyright</strong>: 2017 - 2020 Kong Inc.</li>
         <li><strong>License</strong>: Apache 2.0</li>
         <li><strong>Author</strong>: Thijs Schreijer</li>
     </ul>
@@ -82,7 +84,7 @@
     </dt>
     <dd>
     Cancel the timer.
- Will run the &lsquo;cancel&rsquo;-callback if provided. Will only cancel the timer
+ Will run the 'cancel'-callback if provided. Will only cancel the timer
  in the current worker.
 
 
@@ -90,7 +92,7 @@
     <h3>Returns:</h3>
     <ol>
 
-        results of the &lsquo;cancel&rsquo; callback, or <code>true</code> if no callback was provided
+        results of the 'cancel' callback, or <code>true</code> if no callback was provided
  or <code>nil + &quot;already cancelled&quot;</code> if called repeatedly
     </ol>
 
@@ -110,37 +112,39 @@
     <strong>new (opts, ...)</strong>
     </dt>
     <dd>
-    <p>Create a new timer.
+
+<p>Create a new timer.
  The <code>opts</code> table is not stored nor altered, and can hence be safely reused to
  create multiple timers. It supports the following parameters:</p>
 
 <ul>
-<li><p><code>interval</code> : (number) interval in seconds after which the timer expires</p></li>
-<li><p><code>recurring</code> : (boolean) set to <code>true</code> to make it a recurring timer</p></li>
-<li><p><code>immediate</code> : (boolean) will do the first run immediately (the initial
-interval will be set to 0 seconds). This option requires the <code>recurring</code> option.</p></li>
-<li><p><code>detached</code> : (boolean) if set to <code>true</code> the timer will keep running detached, if
-set to <code>false</code> the timer will be garbage collected unless anchored
-by the user.</p></li>
-<li><p><code>expire</code> : (function) callback called as <code>function(&hellip;)</code> with the arguments passed
-as extra beyond the <code>opts</code> table to this <a href="index.html#new">new</a> function.</p></li>
-<li><p><a href="index.html#cancel">cancel</a> : (optional, function) callback called as <code>function(reason, &hellip;)</code>. Where
-<code>reason</code> indicates why it was cancelled. The additional arguments will be the
-arguments as passed to this <a href="index.html#new">new</a> function, beyond the <code>opts</code> table. See the
-usage example below for possible values for <code>reason</code>.</p></li>
-<li><p><code>shm_name</code> : (optional, string) name of the shm to use to synchronize with the
-other workers if <code>key_name</code> is set.</p></li>
-<li><p><code>key_name</code> : (optional, string) key name to use in shm <code>shm_name</code>. If this key is given
-the timer will only be executed in a single worker. All timers (across all workers) with the same
-key will share this. The key will always be prefixed with this module&rsquo;s
-name to prevent name collisions in the shm. This option requires the <code>shm_name</code> option.</p></li>
-<li><p><code>sub_interval</code> : (optional, number) interval in milliseconds to check whether
-the timer needs to run. Only used for cross-worker timers. This setting reduces
-the maximum delay when a worker that currently runs the timer exits. In this case the
-maximum delay could be <code>interval * 2</code> before another worker picks it up. With
-this option set, the maximum delay will be <code>interval + sub_interval</code>.
-This option requires the <code>immediate</code> and <code>key_name</code> options.</p></li>
+    <li><p><code>interval</code> : (number) interval in seconds after which the timer expires</p></li>
+    <li><p><code>recurring</code> : (boolean) set to <code>true</code> to make it a recurring timer</p></li>
+    <li><p><code>immediate</code> : (boolean) will do the first run immediately (the initial
+    interval will be set to 0 seconds). This option requires the <code>recurring</code> option.</p></li>
+    <li><p><code>detached</code> : (boolean) if set to <code>true</code> the timer will keep running detached, if
+    set to <code>false</code> the timer will be garbage collected unless anchored
+    by the user.</p></li>
+    <li><p><code>expire</code> : (function) callback called as <code>function(...)</code> with the arguments passed
+    as extra beyond the <code>opts</code> table to this <a href="index.html#new">new</a> function.</p></li>
+    <li><p><a href="index.html#cancel">cancel</a> : (optional, function) callback called as <code>function(reason, ...)</code>. Where
+    <code>reason</code> indicates why it was cancelled. The additional arguments will be the
+    arguments as passed to this <a href="index.html#new">new</a> function, beyond the <code>opts</code> table. See the
+    usage example below for possible values for <code>reason</code>.</p></li>
+    <li><p><code>shm_name</code> : (optional, string) name of the shm to use to synchronize with the
+    other workers if <code>key_name</code> is set.</p></li>
+    <li><p><code>key_name</code> : (optional, string) key name to use in shm <code>shm_name</code>. If this key is given
+    the timer will only be executed in a single worker. All timers (across all workers) with the same
+    key will share this. The key will always be prefixed with this module's
+    name to prevent name collisions in the shm. This option requires the <code>shm_name</code> option.</p></li>
+    <li><p><code>sub_interval</code> : (optional, number) interval in milliseconds to check whether
+    the timer needs to run. Only used for cross-worker timers. This setting reduces
+    the maximum delay when a worker that currently runs the timer exits. In this case the
+    maximum delay could be <code>interval * 2</code> before another worker picks it up. With
+    this option set, the maximum delay will be <code>interval + sub_interval</code>.
+    This option requires the <code>immediate</code> and <code>key_name</code> options.</p></li>
 </ul>
+
 
 
 
@@ -211,7 +215,7 @@ This option requires the <code>immediate</code> and <code>key_name</code> option
 </div> <!-- id="main" -->
 <div id="about">
 <i>generated by <a href="http://github.com/stevedonovan/LDoc">LDoc 1.4.6</a></i>
-<i style="float:right;">Last updated 2018-10-28 07:47:48 </i>
+<i style="float:right;">Last updated 2020-09-21 11:03:11 </i>
 </div> <!-- id="about" -->
 </div> <!-- id="container" -->
 </body>
