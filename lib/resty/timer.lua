@@ -1,7 +1,7 @@
 --------------------------------------------------------------------------
 -- Extended timer.
 --
--- @copyright 2017 - 2018 Kong Inc.
+-- @copyright 2017 - 2020 Kong Inc.
 -- @author Thijs Schreijer
 -- @license Apache 2.0
 
@@ -12,12 +12,16 @@ local unpack = function(t, i, j) return _unpack(t, i or 1, j or t.n or #t) end
 local anchor_registry = {}
 local gc_registry = setmetatable({},{ __mode = "v" })
 local timer_id = 0
+local sleep = ngx.sleep
+local exiting = ngx.worker.exiting
 
 local KEY_PREFIX    = "[lua-resty-timer]"
 local LOG_PREFIX    = "[resty-timer] "
 local CANCEL_GC     = "GC"
 local CANCEL_SYSTEM = "SYSTEM"
 local CANCEL_USER   = "USER"
+
+
 
 --- Cancel the timer.
 -- Will run the 'cancel'-callback if provided. Will only cancel the timer
@@ -48,65 +52,98 @@ local function cancel(self)
   return true
 end
 
-local handler = function(premature, timer_id)
-  local self = gc_registry[timer_id] or anchor_registry[timer_id]
-  if not self then  -- timer was garbage collected exit
-    return
-  end
 
-  local registry = self.detached and anchor_registry or gc_registry
 
-  if self.cancel_flag then  -- timer was cancelled, but not yet GC'ed, exit
-    return
-  end
-
-  if premature then   -- premature, so we're being cancelled by the system
-    self.premature_reason = self.premature_reason or CANCEL_SYSTEM
-    return self:cancel()
-  end
-
-  if self.recurring then
-    self:schedule() -- no error checking required
-  else
-    -- not recurring, so must make available for GC
-    registry[timer_id] = nil
-    self.timer_id = nil
-  end
-
-  if self.key_name then
-    -- node wide timer, so validate we're up to run
-    local ok, err = self.shm:add(self.key_name, true, self.interval - 0.001)
-    if not ok then
-      if err == "exists" then
-        return -- we're not up
-      end
-      ngx.log(ngx.ERR, LOG_PREFIX, "failed to add key '", self.key_name, "': ", err)
+local schedule do
+  local function handler(premature, timer_id)
+    local self = gc_registry[timer_id] or anchor_registry[timer_id]
+    if not self then  -- timer was garbage collected exit
+      return
     end
+
+    local registry = self.detached and anchor_registry or gc_registry
+
+    if self.cancel_flag then  -- timer was cancelled, but not yet GC'ed, exit
+      return
+    end
+
+    if premature then   -- premature, so we're being cancelled by the system
+      self.premature_reason = self.premature_reason or CANCEL_SYSTEM
+      return self:cancel()
+    end
+
+    if not self.recurring then
+      -- not recurring, so must make available for GC
+      registry[timer_id] = nil
+      self.timer_id = nil
+
+      self.cb_expire(unpack(self.args))  -- not recurring, so no pcall required
+      return
+    end
+
+    -- from here only recurring timers
+
+    local execute = true
+    if self.key_name then
+      -- node wide timer, so validate we're up to run
+      local ok, err = self.shm:add(self.key_name, true, self.interval - 0.001)
+      if not ok then
+        if err == "exists" then
+          execute = false -- we're not up
+        else
+          ngx.log(ngx.ERR, LOG_PREFIX, "failed to add key '", self.key_name, "': ", err)
+        end
+      end
+    end
+
+    if execute then
+      local ok, err = pcall(self.cb_expire, unpack(self.args))
+      if not ok then
+        ngx.log(ngx.ERR, LOG_PREFIX, "timer callback failed with: ", tostring(err))
+      end
+    end
+
+    -- must be a tailcall to prevent stack overflows in the long run!
+    return handler(self:schedule(), timer_id)
   end
 
-  self.cb_expire(unpack(self.args)) -- already rescheduled, so no pcall required
+
+  -- schedule next invocation.
+  -- initially creates the nginx timer and returns. If the timer already exists
+  -- will sleep for the interval period and then return the `premature` parameter.
+  -- @return On initial call `self` or `nil+err`
+  -- @return consecutive calls; boolean `premature`
+  function schedule(self)
+    local interval = self.sub_interval
+    local id = self.id
+    if not id then
+      -- new timer, so create an actual timer and exit
+      timer_id = timer_id + 1
+      id = timer_id
+      self.id = id
+      interval = self.immediate and 0 or interval
+
+      local ok, err = timer_at(interval, handler, id)
+      if ok then
+        local registry = self.detached and anchor_registry or gc_registry
+        registry[id] = self
+      else
+        ngx.log(ngx.ERR, LOG_PREFIX, "failed to create timer: " .. err)
+      end
+      return ok and self or ok, err
+    end
+
+
+    -- existing timer recurring, so keep this thread alive and just sleep
+    self = nil -- luacheck: ignore -- just to make sure we're eligible for GC
+    if not exiting() then
+      sleep(interval)
+    end
+    return exiting()
+  end
 end
 
-local function schedule(self)
-  local interval = self.sub_interval
-  local id = self.id
-  if not id then
-    timer_id = timer_id + 1
-    id = timer_id
-    self.id = id
-    interval = self.immediate and 0 or interval
-  end
 
-  local registry = self.detached and anchor_registry or gc_registry
-
-  local ok, err = timer_at(interval, handler, id)
-  if ok then
-    registry[id] = self
-  else
-    ngx.log(ngx.ERR, LOG_PREFIX, "failed to create timer: " .. err)
-  end
-  return ok and self or ok, err
-end
 
 --- Create a new timer.
 -- The `opts` table is not stored nor altered, and can hence be safely reused to
@@ -250,6 +287,8 @@ local function new(opts, ...)
 
   return self:schedule()
 end
+
+
 
 return setmetatable(
   {

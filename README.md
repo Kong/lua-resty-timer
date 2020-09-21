@@ -2,7 +2,8 @@
 
 [![Build Status][badge-travis-image]][badge-travis-url]
 
-Extended timers for OpenResty
+Extended timers for OpenResty. Provided recurring, cancellable, node-wide timers,
+beyond what the basic OpenResty timers do.
 
 ## Status
 
@@ -68,15 +69,34 @@ project.
 * garbage collectible timers, enabling timers to (optionally) be attached to
   objects and automatically stop when garbage collected.
 
-
 * node-wide timers: the same timer started in each worker will still only
   run once across the system. If the worker running it is removed the
   timer will automatically be executed on another worker.
 
-See the [online LDoc documentation](http://kong.github.io/lua-resty-timer)
+See the [online LDoc documentation](https://kong.github.io/lua-resty-timer/topics/README.md.html)
 for the complete API.
 
 ## History
+
+Versioning is strictly based on [Semantic Versioning](https://semver.org/)
+
+### Releasing new versions:
+
+* update changelog below (PR's should be merged including a changelog entry)
+* based on changelog determine new SemVer version
+* create a new rockspec
+* render the docs using `ldoc` (don't do this within PR's)
+* commit as "release x.x.x" (do not include rockspec revision)
+* tag the commit with "x.x.x" (do not include rockspec revision)
+* push commit and tag
+* upload rock to luarocks: `luarocks upload rockspecs/[name] --api-key=abc`
+
+### Unreleased
+
+  * Change [BREAKING]: the recurring timers are now implemented as a sleeping
+  thread which is more efficient. Side effect is that the timer only gets
+  rescheduled AFTER executing the handler. So if the handler is long running,
+  then individual runs will be further apart.
 
 ### 0.3 (28-May-2018)
 
