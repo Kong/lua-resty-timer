@@ -1,5 +1,6 @@
 --------------------------------------------------------------------------
--- Extended timer.
+-- Extended timer. Provides recurring, cancellable, node-wide timers, beyond
+-- what the basic OpenResty timers do.
 --
 -- @copyright 2017 - 2020 Kong Inc.
 -- @author Thijs Schreijer
