@@ -8,3 +8,4 @@ ctags
 tags
 a.lua
 .DS_Store
+*.rock

@@ -177,7 +177,7 @@ end
 -- key will share this. The key will always be prefixed with this module's
 -- name to prevent name collisions in the shm. This option requires the `shm_name` option.
 --
--- * `sub_interval` : (optional, number) interval in milliseconds to check whether
+-- * `sub_interval` : (optional, number) interval in seconds to check whether
 -- the timer needs to run. Only used for cross-worker timers. This setting reduces
 -- the maximum delay when a worker that currently runs the timer exits. In this case the
 -- maximum delay could be `interval * 2` before another worker picks it up. With

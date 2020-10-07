@@ -17,15 +17,6 @@ http {
     init_worker_by_lua_block {
         local timer = require("resty.timer")
 
-        local object = {                      -- create some object with a timer
-            count = 0,
-            handler = function(self, param1)  -- the timer callback as a method
-                -- do something here
-                print(param1)                 --> "Param 1"
-            end,
-            timer = nil,                      -- property to be set below
-        }
-
         local options = {
             interval = 0.1,           -- expiry interval in seconds
             recurring = true,         -- recurring or single timer
@@ -40,8 +31,17 @@ http {
             sub_interval = 0.1,       -- max cross worker extra delay
         }
 
-        -- create and add to object, but also pass it as 'self' to the handler
-        object.timer = timer(options, object, "Param 1")
+        local object
+        object = {                            -- create some object with a timer
+            count = 0,
+            handler = function(self, param1)  -- the timer callback as a method
+                -- do something here
+                print(param1)                 --> "Param 1"
+            end,
+
+            -- create and add to object, but also pass it as 'self' to the handler
+            timer = timer(options, object, "Param 1"),
+        }
 
         -- anchor the object and timer
         _M.global_object = object     -- will be collected if not anchored
