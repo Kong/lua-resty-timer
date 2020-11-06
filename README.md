@@ -22,6 +22,7 @@ http {
             recurring = true,         -- recurring or single timer
             immediate = true,         -- initial interval will be 0
             detached = false,         -- run detached, or be garbagecollectible
+            jitter = 0.1,             -- add a random interval
             expire = object.handler,  -- callback on timer expiry
             cancel = function(reason, self, param1)
                 -- will be called when the timer gets cancelled
@@ -90,6 +91,11 @@ Versioning is strictly based on [Semantic Versioning](https://semver.org/)
 * tag the commit with "x.x.x" (do not include rockspec revision)
 * push commit and tag
 * upload rock to luarocks: `luarocks upload rockspecs/[name] --api-key=abc`
+
+### 1.1.0 (unreleased)
+
+  * Feat: add a `jitter` option. This adds a random interval to distribute the
+  timers (in case of scheduling many timers at once).
 
 ### 1.0.0 (21-Sep-2020)
 

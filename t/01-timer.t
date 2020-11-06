@@ -3,7 +3,7 @@ use Cwd qw(cwd);
 
 workers(1);
 
-plan tests => repeat_each() * (blocks() * 3) - 4;
+plan tests => repeat_each() * (blocks() * 2) + 1;
 
 my $pwd = cwd();
 
@@ -198,3 +198,59 @@ GET /t
 GET /t
 --- response_body
 2
+
+
+
+=== TEST 6: adding jitter delays the timers
+--- http_config eval: $::HttpConfig
+--- config
+    location = /t {
+        content_by_lua_block {
+            local timer = require("resty.timer")
+            local count1 = 0
+            local finish1
+            local count2 = 0
+            local finish2
+
+            local options1 = {
+                interval = 0.1,
+                recurring = false,
+                immediate = false,
+                detached = false,
+                expire = function(i)
+                    count1 = count1 + 1
+                    ngx.update_time()
+                    finish1 = ngx.now()
+                    print("one ", i)
+                end,
+            }
+            local options2 = {
+                interval = 0.1,
+                jitter = 1,         -- add 1 second jitter
+                recurring = false,
+                immediate = false,
+                detached = false,
+                expire = function(i)
+                    count2 = count2 + 1
+                    ngx.update_time()
+                    finish2 = ngx.now()
+                    print("two ", i)
+                end,
+            }
+            for i = 1,10 do
+                timer(options1, i)
+                timer(options2, i)
+            end
+
+            ngx.sleep(2)
+            ngx.say(count1)
+            ngx.say(count2)
+            ngx.say(finish1<finish2)
+        }
+    }
+--- request
+GET /t
+--- response_body
+10
+10
+true

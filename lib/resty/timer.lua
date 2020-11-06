@@ -98,6 +98,9 @@ local schedule do
     end
 
     if execute then
+      -- clear jitter on first expiry
+      self.jitter = 0
+      self.sub_jitter = 0
       local ok, err = pcall(self.cb_expire, unpack(self.args))
       if not ok then
         ngx.log(ngx.ERR, LOG_PREFIX, "timer callback failed with: ", tostring(err))
@@ -115,7 +118,7 @@ local schedule do
   -- @return On initial call `self` or `nil+err`
   -- @return consecutive calls; boolean `premature`
   function schedule(self)
-    local interval = self.sub_interval
+    local interval = self.sub_interval + self.sub_jitter
     local id = self.id
     if not id then
       -- new timer, so create an actual timer and exit
@@ -154,8 +157,14 @@ end
 --
 -- * `recurring` : (boolean) set to `true` to make it a recurring timer
 --
+-- * `jitter` : (optional, number) variable interval to add to the first interval, default 0.
+-- If set to 1 second then the first interval will be set between `interval` and `interval + 1`.
+-- This makes sure if large numbers of timers are used, their execution gets randomly
+-- distributed.
+--
 -- * `immediate` : (boolean) will do the first run immediately (the initial
 -- interval will be set to 0 seconds). This option requires the `recurring` option.
+-- The first run will not include the `jitter` interval, it will be added to second run.
 --
 -- * `detached` : (boolean) if set to `true` the timer will keep running detached, if
 -- set to `false` the timer will be garbage collected unless anchored
@@ -234,6 +243,7 @@ local function new(opts, ...)
     immediate = opts.immediate,  -- do first run immediately, at 0 seconds
     detached = opts.detached,    -- should run detached, prevent GC
     args = pack(...),            -- arguments to pass along
+    jitter = opts.jitter,        -- maximum variance in each schedule
     -- callbacks
     cb_expire = opts.expire,     -- the callback function
     cb_cancel = opts.cancel,     -- callback function on cancellation
@@ -277,6 +287,15 @@ local function new(opts, ...)
     assert(self.sub_interval <= self.interval, "expected 'sub_interval' to be less than or equal to 'interval'")
   else
     self.sub_interval = self.interval
+  end
+  if self.jitter ~= nil then
+    assert(type(self.jitter) == "number", "expected 'jitter' to be a number")
+    assert(self.jitter >= 0, "expected 'jitter' to be greater than or equal to 0")
+    self.jitter = math.random() * self.jitter
+    self.sub_jitter = self.jitter * self.sub_interval / self.interval
+  else
+    self.jitter = 0
+    self.sub_jitter = 0
   end
   if self.key_name then
     assert(type(self.key_name) == "string", "expected 'key_name' to be a string")
