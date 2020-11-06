@@ -92,7 +92,7 @@ Versioning is strictly based on [Semantic Versioning](https://semver.org/)
 * push commit and tag
 * upload rock to luarocks: `luarocks upload rockspecs/[name] --api-key=abc`
 
-### 1.1.0 (unreleased)
+### 1.1.0 (6-Nov-2020)
 
   * Feat: add a `jitter` option. This adds a random interval to distribute the
   timers (in case of scheduling many timers at once).
