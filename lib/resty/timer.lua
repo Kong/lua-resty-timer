@@ -48,8 +48,11 @@ local function cancel(self)
   self.cancel_flag = true
   self.premature_reason = self.premature_reason or CANCEL_USER
   if self.cb_cancel then
-    return self.cb_cancel(self.premature_reason, unpack(self.args))
+    local args = self.args
+    self.args = nil -- lend GC a hand
+    return self.cb_cancel(self.premature_reason, unpack(args))
   end
+  self.args = nil -- lend GC a hand
   return true
 end
 
@@ -141,7 +144,7 @@ local schedule do
     -- existing timer recurring, so keep this thread alive and just sleep
     self = nil -- luacheck: ignore -- just to make sure we're eligible for GC
     if not exiting() then
-      sleep(interval)
+      sleep(next_interval)
     end
     return exiting()
   end
