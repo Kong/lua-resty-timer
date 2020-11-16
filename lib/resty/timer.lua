@@ -13,6 +13,7 @@ local unpack = function(t, i, j) return _unpack(t, i or 1, j or t.n or #t) end
 local anchor_registry = {}
 local gc_registry = setmetatable({},{ __mode = "v" })
 local timer_id = 0
+local now = ngx.now
 local sleep = ngx.sleep
 local exiting = ngx.worker.exiting
 
@@ -129,6 +130,7 @@ local schedule do
       id = timer_id
       self.id = id
       interval = self.immediate and 0 or interval
+      self.expire = now() + interval
 
       local ok, err = timer_at(interval, handler, id)
       if ok then
@@ -140,6 +142,10 @@ local schedule do
       return ok and self or ok, err
     end
 
+    -- account for runtime of the timer callback
+    local t = now()
+    local next_interval = math.max(0, self.expire + interval - t)
+    self.expire = t + next_interval
 
     -- existing timer recurring, so keep this thread alive and just sleep
     self = nil -- luacheck: ignore -- just to make sure we're eligible for GC
@@ -262,6 +268,7 @@ local function new(opts, ...)
     cancel_flag = nil,           -- indicator timer was cancelled
     premature_reason = nil,      -- inicator why we're being cancelled
     gc_proxy = nil,              -- userdata proxy to track GC
+    expire = nil,                -- time when timer expires
   }
 
   assert(self.interval, "expected 'interval' to be a number")
