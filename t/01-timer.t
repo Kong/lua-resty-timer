@@ -97,8 +97,9 @@ GET /t
             local count = 0
             local options = {
                 interval = 0.1,
+                sub_interval = 0.001,
                 recurring = true,
-                immediate = false,
+                immediate = true,
                 detached = false,
                 expire = function(arg1, arg2, arg3)
                     count = count + 1
@@ -111,14 +112,15 @@ GET /t
                 -- only 1 should run
                 timer(options, "arg1", nil, "arg3")
             end
-            ngx.sleep(0.55)  -- could be 10 x 5 = 50 occurences
+            -- sleep 5 times interval => + "immediate" = 6 executions
+            ngx.sleep(0.55)  -- could be 10 x 6 = 60 occurences
             ngx.say(count)
         }
     }
 --- request
 GET /t
 --- response_body
-5
+6
 
 
 
