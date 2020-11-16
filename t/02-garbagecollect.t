@@ -199,3 +199,106 @@ GET /t
 GET /t
 --- response_body
 0:true
+
+
+
+=== TEST 5: new() timer gets GC'ed without need to expire
+--- http_config eval: $::HttpConfig
+--- config
+    location = /t {
+        content_by_lua_block {
+            local timer = require("resty.timer")
+            local external_count = 0
+            local cancel_reason = nil
+            local object = {  -- create some object with a timer
+                count = 0,
+                handler = function(self)
+                    self.count = self.count + 1
+                    external_count = self.count
+                end,
+                timer = nil, -- to be set below
+                name = "just-a-timer",
+            }
+            local options = {
+                interval = 0.1,
+                recurring = true,
+                immediate = false,
+                detached = false,
+                expire = object.handler,  -- insert our object based handler
+                --shm_name = "timer_shm",
+                --key_name = "my_key",
+                cancel = function(reason, object)
+                    cancel_reason = object.name .. " GC'ed? " ..
+                        tostring(reason == timer.CANCEL_GC)
+                end,
+            }
+            -- now add to object, but also pass along object !!
+            object.timer = timer(options, object)
+            object = nil  -- drop the object
+            collectgarbage()
+            collectgarbage()
+            --ngx.sleep(0.55)  -- could be 5 occurences, but for this test we're
+            -- not waiting, just GC calling should be enough to cancel it.
+            ngx.say(external_count, cancel_reason)
+        }
+    }
+--- request
+GET /t
+--- response_body
+0just-a-timer GC'ed? true
+
+
+
+=== TEST 6: new() timer gets GC'ed without expiring, and without cancel callback
+--- http_config eval: $::HttpConfig
+--- config
+    location = /t {
+        content_by_lua_block {
+            local timer = require("resty.timer")
+            local external_count = 0
+            local cancel_reason = nil
+            local object = {  -- create some object with a timer
+                count = 0,
+                handler = function(self)
+                    self.count = self.count + 1
+                    external_count = self.count
+                end,
+                timer = nil, -- to be set below
+                name = "just-a-timer",
+            }
+            local options = {
+                interval = 0.1,
+                recurring = true,
+                immediate = false,
+                detached = false,
+                expire = object.handler,  -- insert our object based handler
+                --shm_name = "timer_shm",
+                --key_name = "my_key",
+                --cancel = function(reason, object)
+                --    cancel_reason = object.name .. " GC'ed? " ..
+                --        tostring(reason == timer.CANCEL_GC)
+                --end,
+            }
+            -- now add to object, but also pass along object !!
+            object.timer = timer(options, object)
+
+            -- create a table to track GC'ing both objects
+            local tracker = setmetatable({}, { __mode = "k" })
+            tracker[object] = "object"
+            tracker[timer] = "timer"
+
+            object = nil  -- drop the object
+            collectgarbage()
+            collectgarbage()
+            --ngx.sleep(0.55)  -- could be 5 occurences, but for this test we're
+            -- not waiting, just GC calling should be enough to cancel it.
+
+            ngx.say(tracker.object and "object not collected" or "object gone")
+            ngx.say(tracker.timer and "timer not collected" or "timer gone")
+        }
+    }
+--- request
+GET /t
+--- response_body
+object gone
+timer gone
