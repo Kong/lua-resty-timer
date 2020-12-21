@@ -3,7 +3,7 @@ use Cwd qw(cwd);
 
 workers(1);
 
-plan tests => repeat_each() * (blocks() * 2) + 1;
+plan tests => repeat_each() * (blocks() * 2) + 3;
 
 my $pwd = cwd();
 
@@ -258,3 +258,44 @@ GET /t
 10
 10
 true
+
+
+
+=== TEST 7: callback gets stacktrace on error
+--- http_config eval: $::HttpConfig
+--- config
+    location = /t {
+        content_by_lua_block {
+            local timer = require("resty.timer")
+            local function world()
+                error "oops"
+            end
+            local function hello()
+                world()
+            end
+            local options = {
+                interval = 0.1,
+                recurring = true,
+                immediate = false,
+                detached = false,
+                expire = function(arg1, arg2, arg3)
+                    hello()
+                end,
+                cancel = function(reason, arg1, arg2, arg3)
+                    ngx.log(ngx.ERR, "CANCEL ", reason, arg1, arg2, arg3)
+                end,
+                --shm_name = "timer_shm",
+                --key_name = "my_key",
+            }
+            local t = timer(options, "arg1", nil, "arg3")
+            ngx.sleep(0.59)  -- 5 occurences
+            t:cancel()
+            ngx.say(true)
+        }
+    }
+--- request
+GET /t
+--- error_log
+oops
+hello
+world
