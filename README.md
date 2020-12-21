@@ -128,6 +128,7 @@ Versioning is strictly based on [Semantic Versioning](https://semver.org/)
   * Feat: add a `max_use` option. This ensures timer-contexts are recycled to
     prevent memory leaks.
   * Fix: now accounts for execution time of the handler, when rescheduling.
+  * Feat: provide a stacktrace upon errors in the timer callback
 
 ### 1.1.0 (6-Nov-2020)
 
