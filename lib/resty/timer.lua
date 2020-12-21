@@ -113,11 +113,30 @@ local function handler(premature, id)
         end
       end
 
-      -- reschedule the timer
+      -- calculate next interval
       local interval = self.sub_interval + self.sub_jitter
       local t = now()
       next_interval = math.max(0, self.expire + interval - t)
       self.expire = t + next_interval
+
+      -- do we need to recycle the current timer-context?
+      local call_count = self.call_count + 1
+      if call_count > self.max_use then
+        -- recreate context
+        local ok, err = timer_at(next_interval, handler, id)
+        if ok then
+          self.call_count = 0
+          return -- exit the while loop, and end this timer context
+        end
+        -- couldn't create a timer, so the system seems to be under pressure
+        -- of timer resources, so we log the error and then fallback on the
+        -- current context and sleeping. Next invocation will again try and
+        -- replace the timer context.
+        if err ~= "process exiting" then
+          ngx.log(ngx.ERR, LOG_PREFIX, "failed to create timer: " .. err)
+        end
+      end
+      self.call_count = call_count
       self = nil -- luacheck: ignore -- just to make sure we're eligible for GC
     end
 
@@ -175,6 +194,9 @@ end
 -- this option set, the maximum delay will be `interval + sub_interval`.
 -- This option requires the `immediate` and `key_name` options.
 --
+-- * `max_use` : (optional, number, default 1000) the maximum use count for a
+-- timer context before recreating it.
+--
 -- @function new
 -- @param opts table with options
 -- @param ... arguments to pass to the callbacks `expire` and `cancel`.
@@ -226,6 +248,7 @@ local function new(opts, ...)
     detached = opts.detached,    -- should run detached, prevent GC
     args = pack(...),            -- arguments to pass along
     jitter = opts.jitter,        -- maximum variance in each schedule
+    max_use = opts.max_use,      -- max use count before recycling timer context
     -- callbacks
     cb_expire = opts.expire,     -- the callback function
     cb_cancel = opts.cancel,     -- callback function on cancellation
@@ -241,6 +264,7 @@ local function new(opts, ...)
     premature_reason = nil,      -- inicator why we're being cancelled
     gc_proxy = nil,              -- userdata proxy to track GC
     expire = nil,                -- time when timer expires
+    call_count = 0,              -- call_count in current timer context
   }
 
   assert(self.interval, "expected 'interval' to be a number")
@@ -278,6 +302,13 @@ local function new(opts, ...)
   else
     self.jitter = 0
     self.sub_jitter = 0
+  end
+  if self.max_use then
+    assert(self.recurring, "'max_use' can only be specified on recurring timers")
+    assert(type(self.max_use) == "number", "expected 'max_use' to be a number")
+    assert(self.max_use > 0, "expected 'max_use' to be greater than 0")
+  else
+    self.max_use = 1000
   end
   if self.key_name then
     assert(type(self.key_name) == "string", "expected 'key_name' to be a string")
