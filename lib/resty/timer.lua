@@ -107,7 +107,7 @@ local function handler(premature, id)
         -- clear jitter on first expiry
         self.jitter = 0
         self.sub_jitter = 0
-        local ok, err = pcall(self.cb_expire, unpack(self.args))
+        local ok, err = xpcall(self.cb_expire, debug.traceback, unpack(self.args))
         if not ok then
           ngx.log(ngx.ERR, LOG_PREFIX, "timer callback failed with: ", tostring(err))
         end
