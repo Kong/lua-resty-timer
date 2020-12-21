@@ -681,3 +681,69 @@ GET /t
 
 --- error_log
 expected 'jitter' to be greater than or equal to 0
+
+
+
+=== TEST 19: new() max_use must be a number
+--- http_config eval: $::HttpConfig
+--- config
+    location = /t {
+        content_by_lua_block {
+            local timer = require("resty.timer")
+            local options = {
+                interval = 1,
+                max_use = "hello",
+                recurring = true,
+                immediate = false,
+                detached = false,
+                expire = function(arg1, arg2, arg3)
+                    ngx.log(ngx.ERR, "EXPIRE ", arg1, arg2, arg3)
+                end,
+            }
+            local ok, err = pcall(timer.new, options, "arg1", nil, "arg3")
+            if ok then
+                ngx.say(true)
+            else
+                ngx.log(ngx.ERR, err)
+            end
+        }
+    }
+--- request
+GET /t
+--- response_body
+
+--- error_log
+expected 'max_use' to be a number
+
+
+
+=== TEST 20: new() max_use must be > 0
+--- http_config eval: $::HttpConfig
+--- config
+    location = /t {
+        content_by_lua_block {
+            local timer = require("resty.timer")
+            local options = {
+                interval = 1,
+                max_use = 0,
+                recurring = true,
+                immediate = false,
+                detached = false,
+                expire = function(arg1, arg2, arg3)
+                    ngx.log(ngx.ERR, "EXPIRE ", arg1, arg2, arg3)
+                end,
+            }
+            local ok, err = pcall(timer.new, options, "arg1", nil, "arg3")
+            if ok then
+                ngx.say(true)
+            else
+                ngx.log(ngx.ERR, err)
+            end
+        }
+    }
+--- request
+GET /t
+--- response_body
+
+--- error_log
+expected 'max_use' to be greater than 0
