@@ -213,17 +213,19 @@ GET /t
             local finish1
             local count2 = 0
             local finish2
+            ngx.update_time()
+            local start = ngx.now()
 
             local options1 = {
                 interval = 0.1,
                 recurring = false,
                 immediate = false,
-                detached = false,
+                detached = true,
                 expire = function(i)
                     count1 = count1 + 1
                     ngx.update_time()
-                    finish1 = ngx.now()
-                    print("one ", i)
+                    finish1 = ngx.now() - start
+                    print("one ", i, ": ", finish1)
                 end,
             }
             local options2 = {
@@ -231,17 +233,17 @@ GET /t
                 jitter = 1,         -- add 1 second jitter
                 recurring = false,
                 immediate = false,
-                detached = false,
+                detached = true,
                 expire = function(i)
                     count2 = count2 + 1
                     ngx.update_time()
-                    finish2 = ngx.now()
-                    print("two ", i)
+                    finish2 = ngx.now() - start
+                    print("two ", i, ": ", finish2)
                 end,
             }
             for i = 1,10 do
-                timer(options1, i)
-                timer(options2, i)
+                assert(timer(options1, i))
+                assert(timer(options2, i))
             end
 
             ngx.sleep(2)
