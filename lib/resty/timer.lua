@@ -16,12 +16,59 @@ local timer_id = 0
 local now = ngx.now
 local sleep = ngx.sleep
 local exiting = ngx.worker.exiting
+local min = math.min
 
 local KEY_PREFIX    = "[lua-resty-timer]"
 local LOG_PREFIX    = "[resty-timer] "
 local CANCEL_GC     = "GC"
 local CANCEL_SYSTEM = "SYSTEM"
 local CANCEL_USER   = "USER"
+
+local sleepx do
+  local SLEEP_BLOCK_SIZE = 5
+
+  -- create a 10yr timer only called with `premature` set. The callback will
+  -- release a global semaphore to wake up sleeping threads
+  local sema = assert(require("ngx.semaphore").new())
+  assert(timer_at(10*365*24*60*60, function()
+    sema:post(math.huge)
+  end))
+
+  --- A `sleep` function that exits early on system exit. The same as `ngx.sleep`
+  -- except that it will be interrupted when the current worker starts exiting.
+  -- @param delay same as `ngx.sleep()`; delay in seconds.
+  -- @return results of `ngx.worker.exiting()`
+  -- @usage if sleepx(5) then
+  --   -- sleep was interrupted, exit now
+  --   return nil, "exiting"
+  -- end
+  --
+  -- -- do stuff
+  function sleepx(delay)
+    if type(delay) ~= "number" then
+      error("Bad argument #1, expected number, got " .. type(delay), 2)
+    end
+
+    if delay <= 0 then
+      sleep(delay)
+      return exiting()
+    end
+
+    -- this doesn't work
+    -- see https://github.com/openresty/lua-resty-core/issues/337
+    -- sema:wait(delay)
+    -- return exiting()
+
+    -- fall-back to sleeping in SLEEP_BLOCK_SIZE sec chunks
+    local t = now()
+    local exit_at = t + delay
+    while exit_at > t and not exiting() do
+      sleep(min(SLEEP_BLOCK_SIZE, exit_at - t))
+      t = now()
+    end
+    return exiting()
+  end
+end
 
 
 
@@ -141,10 +188,7 @@ local function handler(premature, id)
     end
 
     -- existing timer recurring, so keep this thread alive and just sleep
-    if not exiting() then
-      sleep(next_interval)
-    end
-    premature = exiting()
+    premature = sleepx(next_interval)
   end  -- while
 end
 
@@ -340,6 +384,7 @@ end
 return setmetatable(
   {
     new = new,
+    sleepx = sleepx,
     CANCEL_GC = CANCEL_GC,
     CANCEL_SYSTEM = CANCEL_SYSTEM,
     CANCEL_USER = CANCEL_USER,
