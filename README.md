@@ -138,5 +138,5 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ```
 
-[badge-travis-url]: https://travis-ci.org/Kong/lua-resty-timer/branches
-[badge-travis-image]: https://travis-ci.org/Kong/lua-resty-timer.svg?branch=master
+[badge-travis-url]: https://travis-ci.com/Kong/lua-resty-timer/branches
+[badge-travis-image]: https://travis-ci.com/Kong/lua-resty-timer.svg?branch=master
