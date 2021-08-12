@@ -96,7 +96,7 @@ The setting `max_use` controls the timer behaviour. The default value is `1000`,
 which means that after each `1000` invocations the timer context is destroyed
 and a new one is generated (this happens transparent to the user).
 
-Optimizing this setting:
+Optimizing this setting (very opinionated/arbitrary!):
 
  * if the timer interval is more than `60` seconds, then keeping the context
    around in idle state for that period is probably more expensive resource wise
@@ -128,6 +128,8 @@ Versioning is strictly based on [Semantic Versioning](https://semver.org/)
   * Feat: provide a stacktrace upon errors in the timer callback
   * Feat: add a `max_use` option. This ensures timer-contexts are recycled to
     prevent memory leaks.
+  * Feat: adds a new function `sleep` similar to `ngx.sleep` except that it is
+    interrupted on worker exit.
   * Fix: now accounts for execution time of the handler, when rescheduling.
 
 ### 1.1.0 (6-Nov-2020)
