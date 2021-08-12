@@ -14,7 +14,7 @@ local anchor_registry = {}
 local gc_registry = setmetatable({},{ __mode = "v" })
 local timer_id = 0
 local now = ngx.now
-local sleep = ngx.sleep
+local ngx_sleep = ngx.sleep
 local exiting = ngx.worker.exiting
 
 local KEY_PREFIX    = "[lua-resty-timer]"
@@ -22,6 +22,64 @@ local LOG_PREFIX    = "[resty-timer] "
 local CANCEL_GC     = "GC"
 local CANCEL_SYSTEM = "SYSTEM"
 local CANCEL_USER   = "USER"
+
+local sleep do
+  -- create a 10yr timer. Will only be called when the worker exits with
+  -- `premature` set. The callback will release a global semaphore to wake up
+  -- sleeping threads
+  local sema = assert(require("ngx.semaphore").new())
+  assert(timer_at(10*365*24*60*60, function()
+    sema:post(math.huge)
+
+    -- TODO: remove the sleep(0), it's a hack around semaphores
+    -- not being released properly, an Openresty bug.
+    -- See https://github.com/openresty/lua-resty-core/issues/337
+    ngx_sleep(0)
+  end))
+
+  --- A `sleep` function that exits early on worker exit. The same as `ngx.sleep`
+  -- except that it will be interrupted when the current worker starts exiting.
+  -- Calling this function after the worker started exiting will immediately
+  -- return (after briefly yielding with a `ngx.sleep(0)`).
+  -- @param delay same as `ngx.sleep()`; delay in seconds.
+  -- @return `true` if finished, `false` if returned early, or nil+err (under
+  -- the hood it will return: "`not ngx.worker.exiting()`").
+  -- @usage if not sleep(5) then
+  --   -- sleep was interrupted, exit now
+  --   return nil, "exiting"
+  -- end
+  --
+  -- -- do stuff
+  function sleep(delay)
+    if type(delay) ~= "number" then
+      error("Bad argument #1, expected number, got " .. type(delay), 2)
+    end
+
+    if delay <= 0 then
+      -- no delay, just yield and return
+      ngx_sleep(delay)
+      return not exiting()
+    end
+
+    local ok, err = sema:wait(delay)
+    if err == "timeout" then
+      -- the sleep was finished
+      return not exiting()
+    end
+
+    -- each call to sleep should at a minimum at least yield, to prevent
+    -- dead-locks elsewhere, so forcefully yield here.
+    ngx_sleep(0)
+
+    if ok then
+      -- we're exiting early because resources were posted to the semaphore
+      return not exiting()
+    end
+
+    ngx.log(ngx.ERR, "waiting for semaphore failed: ", err)
+    return nil, err
+  end
+end
 
 
 
@@ -113,19 +171,35 @@ local function handler(premature, id)
         end
       end
 
-      -- reschedule the timer
+      -- calculate next interval
       local interval = self.sub_interval + self.sub_jitter
       local t = now()
       next_interval = math.max(0, self.expire + interval - t)
       self.expire = t + next_interval
+
+      -- do we need to recycle the current timer-context?
+      local call_count = self.call_count + 1
+      if call_count > self.max_use then
+        -- recreate context
+        local ok, err = timer_at(next_interval, handler, id)
+        if ok then
+          self.call_count = 0
+          return -- exit the while loop, and end this timer context
+        end
+        -- couldn't create a timer, so the system seems to be under pressure
+        -- of timer resources, so we log the error and then fallback on the
+        -- current context and sleeping. Next invocation will again try and
+        -- replace the timer context.
+        if err ~= "process exiting" then
+          ngx.log(ngx.ERR, LOG_PREFIX, "failed to create timer: " .. err)
+        end
+      end
+      self.call_count = call_count
       self = nil -- luacheck: ignore -- just to make sure we're eligible for GC
     end
 
     -- existing timer recurring, so keep this thread alive and just sleep
-    if not exiting() then
-      sleep(next_interval)
-    end
-    premature = exiting()
+    premature = not sleep(next_interval)
   end  -- while
 end
 
@@ -141,12 +215,12 @@ end
 --
 -- * `jitter` : (optional, number) variable interval to add to the first interval, default 0.
 -- If set to 1 second then the first interval will be set between `interval` and `interval + 1`.
--- This makes sure if large numbers of timers are used, their execution gets randomly
+-- This makes sure if a large number of timers are used, their execution gets randomly
 -- distributed.
 --
 -- * `immediate` : (boolean) will do the first run immediately (the initial
 -- interval will be set to 0 seconds). This option requires the `recurring` option.
--- The first run will not include the `jitter` interval, it will be added to second run.
+-- The first run will not include the `jitter` interval, it will be added to the second run.
 --
 -- * `detached` : (boolean) if set to `true` the timer will keep running detached, if
 -- set to `false` the timer will be garbage collected unless anchored
@@ -174,6 +248,9 @@ end
 -- maximum delay could be `interval * 2` before another worker picks it up. With
 -- this option set, the maximum delay will be `interval + sub_interval`.
 -- This option requires the `immediate` and `key_name` options.
+--
+-- * `max_use` : (optional, number, default 1000) the maximum use count for a
+-- timer context before recreating it.
 --
 -- @function new
 -- @param opts table with options
@@ -226,6 +303,7 @@ local function new(opts, ...)
     detached = opts.detached,    -- should run detached, prevent GC
     args = pack(...),            -- arguments to pass along
     jitter = opts.jitter,        -- maximum variance in each schedule
+    max_use = opts.max_use,      -- max use count before recycling timer context
     -- callbacks
     cb_expire = opts.expire,     -- the callback function
     cb_cancel = opts.cancel,     -- callback function on cancellation
@@ -241,6 +319,7 @@ local function new(opts, ...)
     premature_reason = nil,      -- inicator why we're being cancelled
     gc_proxy = nil,              -- userdata proxy to track GC
     expire = nil,                -- time when timer expires
+    call_count = 0,              -- call_count in current timer context
   }
 
   assert(self.interval, "expected 'interval' to be a number")
@@ -279,6 +358,13 @@ local function new(opts, ...)
     self.jitter = 0
     self.sub_jitter = 0
   end
+  if self.max_use then
+    assert(self.recurring, "'max_use' can only be specified on recurring timers")
+    assert(type(self.max_use) == "number", "expected 'max_use' to be a number")
+    assert(self.max_use > 0, "expected 'max_use' to be greater than 0")
+  else
+    self.max_use = 1000
+  end
   if self.key_name then
     assert(type(self.key_name) == "string", "expected 'key_name' to be a string")
     assert(opts.shm_name, "'shm_name' is required when specifying 'key_name'")
@@ -309,6 +395,7 @@ end
 return setmetatable(
   {
     new = new,
+    sleep = sleep,
     CANCEL_GC = CANCEL_GC,
     CANCEL_SYSTEM = CANCEL_SYSTEM,
     CANCEL_USER = CANCEL_USER,

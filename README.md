@@ -30,6 +30,7 @@ http {
             shm_name = "timer_shm",   -- shm to use for node-wide timers
             key_name = "my_key",      -- key-name to use for node-wide timers
             sub_interval = 0.1,       -- max cross worker extra delay
+            max_use = 1000,           -- maximum re-use of timer context
         }
 
         local object
@@ -59,7 +60,8 @@ The OpenResty timer is fairly limited, this timer adds a number of common
 options as parameters without having to recode (and retest) them in each
 project.
 
-* recurring timers (supported by OR as well through `ngx.timer.every`)
+* recurring timers (supported by OR as well through `ngx.timer.every`, but this
+  implementation will not run overlapping timers)
 
 * immediate first run for recurring timers
 
@@ -76,6 +78,35 @@ project.
 
 See the [online LDoc documentation](https://kong.github.io/lua-resty-timer/topics/README.md.html)
 for the complete API.
+
+## Performance and optimizations
+
+This timer implementation is based on "sleeping on a timer-context". This means
+that a single timer is created, and in between recurring invocations `ngx.sleep`
+is called as a delay to the next invocation. This as opposed to creating a new
+Nginx timer for each invocation. This is configurable however.
+
+Creating a new context is a rather expensive operation. Hence we keep the context
+alive and just sleep without the need to recreate it. The downside is that there
+is the possibility of a memory leak. Since a timer is implemented in OR as a
+request and requests are short-lived, some memory is not released until after the
+context is destroyed.
+
+The setting `max_use` controls the timer behaviour. The default value is `1000`,
+which means that after each `1000` invocations the timer context is destroyed
+and a new one is generated (this happens transparent to the user).
+
+Optimizing this setting (very opinionated/arbitrary!):
+
+ * if the timer interval is more than `60` seconds, then keeping the context
+   around in idle state for that period is probably more expensive resource wise
+   than having to recreate the context. So use `max_use == 1` to drop the
+   context after each invocation.
+
+ * if the timer interval is less than `5` seconds then reusing the context makes
+   sense. Assume recycling to be done once per minute, or for very high
+   frequency timers (and hence higher risk of memory leak), more than once per
+   minute.
 
 ## History
 
@@ -95,6 +126,11 @@ Versioning is strictly based on [Semantic Versioning](https://semver.org/)
 ### unreleased
 
   * Feat: provide a stacktrace upon errors in the timer callback
+  * Feat: add a `max_use` option. This ensures timer-contexts are recycled to
+    prevent memory leaks.
+  * Feat: adds a new function `sleep` similar to `ngx.sleep` except that it is
+    interrupted on worker exit.
+  * Fix: now accounts for execution time of the handler, when rescheduling.
 
 ### 1.1.0 (6-Nov-2020)
 
